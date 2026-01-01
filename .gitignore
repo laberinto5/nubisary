@@ -33,6 +33,11 @@ htmlcov/
 .tox/
 *.cover
 
+# PyInstaller
+build/
+dist/
+*.spec.bak
+
 # IDE
 .vscode/
 .idea/

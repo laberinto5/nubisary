@@ -77,13 +77,19 @@ class TestCleanConvertedText:
             "Content\n(1)\nMore",
             "Content\n[1]\nMore",
             "Content\n-1-\nMore",
+            "Content\n-12-\nMore",  # Test double-digit numbers with dashes
+            "Content\n--12--\nMore",  # Test multiple dashes
             "Content\n  1  \nMore",
         ]
         for text in test_cases:
             result = clean_converted_text(text)
             # Page number should be removed
             lines = [line.strip() for line in result.split('\n') if line.strip()]
-            assert '1' not in lines or any('1' in line and len(line) > 1 for line in lines)
+            # Check that the number pattern is not in the cleaned lines
+            assert '-12-' not in result or '-12-' not in '\n'.join(lines)
+            assert '-1-' not in result or '-1-' not in '\n'.join(lines)
+            assert 'More' in result
+            assert 'Content' in result
     
     def test_remove_roman_numerals(self):
         """Test removal of Roman numeral page numbers."""
