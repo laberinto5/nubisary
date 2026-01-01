@@ -43,7 +43,6 @@ htmlcov/
 
 # Project specific
 *.png
-*.txt
 *.pdf
 *.docx
 *.doc

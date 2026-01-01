@@ -1,0 +1,25 @@
+# Word Cloud Generator Dependencies
+
+# Core dependencies
+wordcloud>=1.9.2
+matplotlib>=3.5.0
+nltk>=3.7
+numpy>=1.21.0
+Pillow>=9.0.0
+
+# CLI interface
+typer>=0.9.0
+
+# Document conversion
+pypdf>=3.0.0          # PDF text extraction
+python-docx>=1.0.0    # DOCX text extraction
+# Note: .doc format is not supported to avoid external dependencies
+# Users should convert .doc files to .docx or .txt first
+
+# Testing
+pytest>=7.0.0
+pytest-cov>=4.0.0  # For coverage reports
+
+# Optional: for better CLI experience (rich terminal output)
+# rich>=13.0.0  # Uncomment if you want enhanced Typer output
+
