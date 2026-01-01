@@ -67,6 +67,11 @@ hiddenimports = [
     'PIL.ImageDraw',
     'PIL.ImageFont',
     
+    # Matplotlib dependencies
+    'pyparsing',
+    'pyparsing.testing',
+    'unittest',
+    
     # Project modules
     'src',
     'src.config',
@@ -94,10 +99,10 @@ a = Analysis(
     runtime_hooks=[],
     excludes=[
         # Exclude unnecessary modules to reduce size
+        # Note: Don't exclude 'unittest' - matplotlib/pyparsing needs it
         'pytest',
         'test',
         'tests',
-        'unittest',
         'doctest',
     ],
     win_no_prefer_redirects=False,
