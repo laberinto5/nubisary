@@ -124,9 +124,9 @@ exe = EXE(
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
-    upx=True,  # Use UPX compression (if available)
+    upx=False,  # Disable UPX - can trigger antivirus false positives and slow startup
     upx_exclude=[],
-    runtime_tmpdir=None,
+    runtime_tmpdir=None,  # None = use system temp, can specify custom path for faster startup
     console=False,  # No console window for GUI (windowed mode)
     disable_windowed_traceback=False,
     argv_emulation=False,

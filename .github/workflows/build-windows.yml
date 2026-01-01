@@ -30,24 +30,49 @@ jobs:
       run: |
         python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
     
-    - name: Build executable with PyInstaller
+    - name: Build one-file executable with PyInstaller
       run: |
         pyinstaller nubisary_gui.spec
     
-    - name: Verify executable exists
+    - name: Build one-folder executable with PyInstaller
+      run: |
+        pyinstaller nubisary_gui_folder.spec
+    
+    - name: Verify one-file executable exists
       run: |
         if (Test-Path "dist\nubisary.exe") {
-          Write-Host "Executable created successfully"
+          Write-Host "One-file executable created successfully"
           Get-Item "dist\nubisary.exe" | Select-Object Name, Length
         } else {
-          Write-Host "ERROR: Executable not found"
+          Write-Host "ERROR: One-file executable not found"
           exit 1
         }
     
-    - name: Upload executable artifact
+    - name: Verify one-folder executable exists
+      run: |
+        if (Test-Path "dist\nubisary\nubisary.exe") {
+          Write-Host "One-folder executable created successfully"
+          Get-Item "dist\nubisary\nubisary.exe" | Select-Object Name, Length
+        } else {
+          Write-Host "ERROR: One-folder executable not found"
+          exit 1
+        }
+    
+    - name: Create ZIP for one-folder distribution
+      run: |
+        Compress-Archive -Path "dist\nubisary\*" -DestinationPath "dist\nubisary-folder.zip" -Force
+    
+    - name: Upload one-file executable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nubisary-windows
+        name: nubisary-windows-onefile
         path: dist/nubisary.exe
+        retention-days: 30
+    
+    - name: Upload one-folder executable artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: nubisary-windows-folder
+        path: dist/nubisary-folder.zip
         retention-days: 30
 
