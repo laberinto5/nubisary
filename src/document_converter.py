@@ -57,7 +57,8 @@ def clean_converted_text(text: str) -> str:
     prev_line_empty = False
     
     # Pattern to match page numbers: lines with only digits, optionally with dashes, parentheses, brackets, or spaces
-    # Examples: "1", "1-", "-1", "(1)", "[1]", "1  ", "  1  ", etc.
+    # Examples: "1", "1-", "-1", "-12-", "--12--", "(1)", "[1]", "1  ", "  1  ", etc.
+    # This pattern explicitly handles cases like "-12-" where numbers are surrounded by dashes
     page_number_pattern = re.compile(r'^[\s\-\(\)\[\]]*\d+[\s\-\(\)\[\]]*$')
     
     # Pattern to match Roman numerals: valid Roman numeral characters (I, V, X, L, C, D, M)
