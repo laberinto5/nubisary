@@ -25,7 +25,14 @@ from src.document_converter import (
     is_convertible_document,
     DocumentConversionError
 )
-from src.text_processor import preprocess_text, generate_word_count_from_text
+from src.text_processor import (
+    preprocess_text,
+    generate_word_count_from_text,
+    remove_excluded_text,
+    parse_exclude_words_argument,
+    parse_regex_rule_argument,
+    apply_regex_transformations
+)
 from src.wordcloud_generator import generate_word_cloud_from_frequencies
 from src.statistics_exporter import export_statistics
 from src.logger import setup_logger
@@ -48,7 +55,11 @@ def generate_wordcloud(
     clean_text: bool = True,
     export_stats: bool = False,
     stats_output: Optional[str] = None,
-    stats_top_n: Optional[int] = None
+    stats_top_n: Optional[int] = None,
+    exclude_words: Optional[str] = None,
+    exclude_case_sensitive: bool = False,
+    regex_rule: Optional[str] = None,
+    regex_case_sensitive: bool = False
 ) -> Dict[str, float]:
     """
     High-level function to generate a word cloud from a text or JSON file.
@@ -65,6 +76,10 @@ def generate_wordcloud(
         export_stats: If True, export word frequencies to JSON and CSV (default: False)
         stats_output: Optional base path for statistics files (auto-generate if None)
         stats_top_n: Optional number of top words to export (None = all words)
+        exclude_words: Optional string with words/phrases to exclude (file path or comma-separated list)
+        exclude_case_sensitive: If True, exclude matching is case-sensitive (default: False)
+        regex_rule: Optional regex rule or file path. Format: "pattern" or "pattern|replacement"
+        regex_case_sensitive: If True, regex matching is case-sensitive (default: False)
         
     Returns:
         Dictionary mapping words to their frequencies
@@ -138,6 +153,12 @@ def generate_wordcloud(
         logger.info(f'  - Max words: {config.max_words}')
         logger.info(f'  - Min word length: {config.min_word_length}')
         logger.info(f'  - Canvas size: {config.canvas_width}x{config.canvas_height}')
+        if exclude_words:
+            logger.info(f'  - Exclude words: {exclude_words}')
+            logger.info(f'  - Exclude case sensitive: {exclude_case_sensitive}')
+        if regex_rule:
+            logger.info(f'  - Regex rule: {regex_rule}')
+            logger.info(f'  - Regex case sensitive: {regex_case_sensitive}')
         
         # Process input based on type
         if is_json:
@@ -153,6 +174,23 @@ def generate_wordcloud(
             text = read_text_file(input_file, auto_convert=True, clean_text=clean_text)
             if is_document:
                 logger.info(f'Document converted successfully')
+            
+            # Remove excluded words/phrases if specified
+            if exclude_words:
+                excluded_items = parse_exclude_words_argument(exclude_words)
+                if excluded_items:
+                    logger.info(f'Removing {len(excluded_items)} excluded word(s)/phrase(s) from text')
+                    text = remove_excluded_text(text, excluded_items, exclude_case_sensitive)
+                    logger.info('Excluded words/phrases removed from text')
+            
+            # Apply regex transformations if specified
+            if regex_rule:
+                regex_rules = parse_regex_rule_argument(regex_rule)
+                if regex_rules:
+                    logger.info(f'Applying {len(regex_rules)} regex rule(s) to text')
+                    text = apply_regex_transformations(text, regex_rules, regex_case_sensitive)
+                    logger.info('Regex transformations applied to text')
+            
             text_processed = preprocess_text(text, config.case_sensitive)
             
             # Generate word frequencies

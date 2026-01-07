@@ -157,6 +157,26 @@ def generate(
         None,
         '--font-path',
         help='Path to custom font file (TTF/OTF)'
+    ),
+    exclude_words: Optional[str] = typer.Option(
+        None,
+        '-ew', '--exclude-words',
+        help='Words or phrases to exclude from text. Can be: a single word, comma-separated list (e.g., "word1,word2"), or a file path (one word/phrase per line). File paths are checked first; if file does not exist, treated as text.'
+    ),
+    exclude_case_sensitive: bool = typer.Option(
+        False,
+        '--exclude-case-sensitive',
+        help='Make exclude-words matching case-sensitive (default: case-insensitive)'
+    ),
+    regex_rule: Optional[str] = typer.Option(
+        None,
+        '-rr', '--regex-rule',
+        help='Regex rule for advanced text transformation. Format: "pattern" (removes) or "pattern|replacement" (replaces). Can be a file path (one rule per line). Supports capture groups (\\1, \\2, etc.). Rules are applied in order.'
+    ),
+    regex_case_sensitive: bool = typer.Option(
+        False,
+        '--regex-case-sensitive',
+        help='Make regex matching case-sensitive (default: case-insensitive)'
     )
 ):
     """
@@ -215,6 +235,34 @@ def generate(
     \b
     # Generate from JSON frequencies with statistics
     python nubisary.py generate -i frequencies.json -l english --export-stats
+    
+    \b
+    # Generate with excluded words/phrases (removes repeated headers from PDF conversion)
+    python nubisary.py generate -i document.pdf -l spanish -ew "Título del Libro,Autor Nombre"
+    
+    \b
+    # Generate with excluded words from file (one word/phrase per line)
+    python nubisary.py generate -i document.pdf -l spanish -ew excluded.txt
+    
+    \b
+    # Generate with case-sensitive exclusion
+    python nubisary.py generate -i text.txt -l english -ew "Word" --exclude-case-sensitive
+    
+    \b
+    # Generate with regex rule to remove page headers
+    python nubisary.py generate -i document.pdf -l spanish -rr "^Página \d+"
+    
+    \b
+    # Generate with regex rule to replace pattern
+    python nubisary.py generate -i text.txt -l english -rr "Página (\d+)|P.\\1"
+    
+    \b
+    # Generate with regex rules from file (one rule per line)
+    python nubisary.py generate -i document.pdf -l spanish -rr regex_rules.txt
+    
+    \b
+    # Generate with both exclude-words and regex rules (applied in order)
+    python nubisary.py generate -i document.pdf -l spanish -ew "Título,Autor" -rr "^Página \d+"
     """
     try:
         # Handle theme selection
@@ -284,7 +332,11 @@ def generate(
             clean_text=not no_clean_text,
             export_stats=export_stats,
             stats_output=stats_output,
-            stats_top_n=stats_top_n
+            stats_top_n=stats_top_n,
+            exclude_words=exclude_words,
+            exclude_case_sensitive=exclude_case_sensitive,
+            regex_rule=regex_rule,
+            regex_case_sensitive=regex_case_sensitive
         )
         
     except WordCloudServiceError as e:
