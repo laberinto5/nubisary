@@ -5,7 +5,7 @@
 ## Features
 
 - **Multiple Input Formats**: Process text files, PDFs, DOCX documents, or JSON frequency data
-- **34 Preset Themes**: Beautiful color combinations for instant visual appeal
+- **38+ Preset Themes**: Beautiful color combinations for instant visual appeal (including custom colormaps)
 - **Advanced Text Processing**: 
   - Exclude specific words or phrases
   - Apply regex transformations for complex text filtering
@@ -45,7 +45,9 @@ python nubisary_gui.py
 
 - **[CLI Documentation](documentation/CLI.md)** - Complete guide to the command-line interface
 - **[GUI Documentation](documentation/GUI.md)** - Guide to the graphical user interface
-- **[Themes](documentation/THEMES.md)** - Full documentation of all 34 preset themes
+- **[Themes](documentation/THEMES.md)** - Full documentation of all preset themes (38+ themes)
+- **[Custom Themes](documentation/CUSTOM_THEMES.md)** - Create and use custom themes with custom colormaps
+- **[Defining Custom Themes](documentation/DEFINING_CUSTOM_THEMES.md)** - Practical guide to define your own themes
 - **[Build Options](documentation/BUILD_OPTIONS.md)** - Building and packaging options
 - **[Packaging](documentation/PACKAGING.md)** - Creating standalone executables
 - **[Performance](documentation/PERFORMANCE.md)** - Performance considerations and optimization

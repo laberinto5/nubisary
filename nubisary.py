@@ -1,14 +1,24 @@
 """Nubisary - Word Cloud Generator CLI entry point using Typer."""
 
 import typer
-from typing import Optional
+import os
+from typing import Optional, List
 
 from src.config import WordCloudConfig
 from src.themes import get_theme, get_theme_names
-from src.wordcloud_service import generate_wordcloud, WordCloudServiceError
+from src.wordcloud_service import (
+    generate_wordcloud, 
+    WordCloudServiceError,
+    process_text_to_frequencies
+)
+from src.wordcloud_generator import generate_word_cloud_from_frequencies
+from src.statistics_exporter import export_statistics
 from src.file_handlers import convert_document_to_text_file, FileHandlerError
 from src.document_converter import is_convertible_document, UnsupportedFormatError
+from src.custom_themes import load_custom_theme_from_json, CustomThemeError
 from src.logger import setup_logger
+from src.validators import generate_output_filename, validate_color_reference, ValidationError
+import os
 
 # Setup logger
 logger = setup_logger()
@@ -19,6 +29,83 @@ app = typer.Typer(
     help='Generate word clouds from text, JSON, PDF, DOC, or DOCX files.',
     add_completion=False
 )
+
+
+def parse_theme_argument(theme_arg: Optional[str]) -> List[str]:
+    """
+    Parse theme argument that can be:
+    - A single theme name: "soft"
+    - Multiple theme names separated by commas: "soft,playroom,jungle"
+    - "all" to generate all available themes
+    
+    Args:
+        theme_arg: Theme argument string or None
+        
+    Returns:
+        List of theme names (empty list if theme_arg is None)
+        
+    Raises:
+        ValueError: If "all" is used with other themes or if any theme name is invalid
+    """
+    if not theme_arg:
+        return []
+    
+    # Normalize and split by comma
+    theme_arg = theme_arg.strip()
+    
+    if theme_arg.lower() == "all":
+        # Return all available theme names
+        return sorted(get_theme_names())
+    
+    # Split by comma and strip whitespace
+    themes = [t.strip() for t in theme_arg.split(',') if t.strip()]
+    
+    # Check if "all" is mixed with other themes
+    if "all" in [t.lower() for t in themes]:
+        raise ValueError('Cannot use "all" with other theme names. Use "all" alone or specific theme names.')
+    
+    return themes
+
+
+def generate_output_file_with_theme_suffix(
+    base_output: Optional[str],
+    input_file: str,
+    theme_name: str,
+    has_theme: bool = True
+) -> str:
+    """
+    Generate output filename with theme suffix.
+    
+    Always adds the theme name as a suffix before the extension when a theme is used.
+    If no theme is used (custom colors), doesn't add a suffix.
+    
+    Args:
+        base_output: User-provided output filename (can be None)
+        input_file: Input file path (used for auto-generation)
+        theme_name: Name of the theme (used as suffix, or "custom" if no theme)
+        has_theme: Whether a theme is being used (if False, doesn't add suffix)
+        
+    Returns:
+        Output filename with theme suffix if has_theme is True, otherwise base filename
+    """
+    # Determine base filename
+    if base_output:
+        base, ext = os.path.splitext(base_output)
+        if not ext:
+            ext = '.png'
+        base_filename = base
+    else:
+        # Auto-generate from input file
+        base_output = generate_output_filename(input_file, '.png')
+        base, ext = os.path.splitext(base_output)
+        base_filename = base
+    
+    # Add theme suffix if a theme is being used
+    if has_theme:
+        return f"{base_filename}_{theme_name}{ext}"
+    else:
+        # No theme, use base filename as-is
+        return f"{base_filename}{ext}"
 
 
 @app.command(name='generate')
@@ -121,7 +208,7 @@ def generate(
     theme: Optional[str] = typer.Option(
         None,
         '-T', '--theme',
-        help='Preset theme name. Available themes: classic, vibrant, ocean, sunset, minimal, dark, pastel, high-contrast, inferno, magma, spring, summer, autumn, winter, cool, hot, rainbow, jet, turbo, blues, greens, reds, purples, oranges, spectral, rdbu, set1, set2, pastel2, dark2, tab10, tab20, accent. Overrides individual color settings.'
+        help='Preset theme name(s). Can be: a single theme, multiple themes separated by commas (e.g., "soft,playroom,jungle"), or "all" to generate all available themes. Each theme generates a separate output file with the theme name as suffix. Overrides individual color settings.'
     ),
     colormap: Optional[str] = typer.Option(
         None,
@@ -177,6 +264,11 @@ def generate(
         False,
         '--regex-case-sensitive',
         help='Make regex matching case-sensitive (default: case-insensitive)'
+    ),
+    custom_theme: Optional[str] = typer.Option(
+        None,
+        '--custom-theme',
+        help='Path to JSON file containing custom theme definition. See documentation for JSON format. Custom theme will override --theme if both are specified.'
     )
 ):
     """
@@ -188,29 +280,30 @@ def generate(
     
     Visual customization:
     - Use --theme for preset color combinations (recommended)
-      See THEMES.md for complete theme documentation
+      Can specify multiple themes separated by commas or use "all" to generate all themes
+      Each theme generates a separate output file with theme name as suffix
+      See THEMES.md for complete theme documentation or use 'list-themes' command
     - Use --colormap for multi-color word clouds
     - Use --relative-scaling to control size difference intensity
     - Use --mask for custom shapes (requires prepared image)
     
-    Available themes (34 total):
-    Classic: classic, minimal, high-contrast
-    Dark: dark, vibrant, inferno, magma, hot, jet, turbo, dark2
-    Seasonal: spring, summer, autumn, winter
-    Color-based: blues, greens, reds, purples, oranges
-    Specialized: ocean, sunset, cool, rainbow
-    Diverging: spectral, rdbu
-    Qualitative: set1, set2, pastel, pastel2, tab10, tab20, accent
-    
     Examples:
     
     \b
-    # Generate from text file with theme (auto-generates output filename)
-    python nubisary.py generate -i text.txt -l english --theme vibrant
+    # Generate from text file with single theme (auto-generates output filename)
+    python nubisary.py generate -i text.txt -l english --theme soft
     
     \b
-    # Generate with custom output filename
-    python nubisary.py generate -i text.txt -l english -o custom_output.png --theme vibrant
+    # Generate with multiple themes (creates separate files: text_soft.png, text_playroom.png)
+    python nubisary.py generate -i text.txt -l english --theme soft,playroom,jungle
+    
+    \b
+    # Generate all available themes (creates one file per theme with theme name suffix)
+    python nubisary.py generate -i text.txt -l english --theme all
+    
+    \b
+    # Generate with custom output filename and multiple themes (base_name_theme.png)
+    python nubisary.py generate -i text.txt -l english -o output.png --theme soft,playroom
     
     \b
     # Generate with statistics export (auto-generates filenames based on input)
@@ -263,81 +356,231 @@ def generate(
     \b
     # Generate with both exclude-words and regex rules (applied in order)
     python nubisary.py generate -i document.pdf -l spanish -ew "Título,Autor" -rr "^Página \d+"
+    
+    \b
+    # Generate with custom theme from JSON file
+    python nubisary.py generate -i text.txt -l english --custom-theme my_theme.json
+    
+    \b
+    # Generate with custom theme (overrides --theme if both specified)
+    python nubisary.py generate -i text.txt -l english --theme vibrant --custom-theme my_theme.json
     """
     try:
-        # Handle theme selection
-        theme_obj = None
-        if theme:
-            theme_obj = get_theme(theme)
-            if theme_obj is None:
-                available_themes = ', '.join(get_theme_names())
-                logger.error(
-                    f'Unknown theme: {theme}. '
-                    f'Available themes: {available_themes}'
-                )
+        # ========================================================================
+        # STEP 1: Validate all themes FIRST (before any text processing)
+        # ========================================================================
+        theme_list = []
+        theme_names = []
+        
+        if custom_theme:
+            # Handle custom theme first (if specified)
+            # Custom theme only supports single theme generation
+            try:
+                logger.info(f'Loading custom theme from: {custom_theme}')
+                theme_obj = load_custom_theme_from_json(custom_theme)
+                logger.info(f'Custom theme loaded: {theme_obj.name} - {theme_obj.description}')
+                if theme:
+                    logger.warning(f'Both --theme ({theme}) and --custom-theme ({custom_theme}) specified. Custom theme takes precedence.')
+                
+                # Generate single word cloud with custom theme
+                theme_list = [theme_obj]
+                theme_names = [theme_obj.name]
+            except (CustomThemeError, FileHandlerError) as e:
+                logger.error(f'Error loading custom theme: {e}')
                 raise typer.Exit(code=1)
-            logger.info(f'Using theme: {theme_obj.name} - {theme_obj.description}')
+        else:
+            # Parse theme argument to get list of theme names
+            theme_names_list = []
+            if theme:
+                try:
+                    theme_names_list = parse_theme_argument(theme)
+                except ValueError as e:
+                    logger.error(f'Invalid theme argument: {e}')
+                    raise typer.Exit(code=1)
+            
+            # If no themes specified, use None (will use individual color settings)
+            if not theme_names_list:
+                theme_list = [None]
+                theme_names = ["default"]
+            else:
+                # Validate ALL themes exist BEFORE processing
+                available_themes = get_theme_names()
+                invalid_themes = []
+                
+                for theme_name in theme_names_list:
+                    theme_obj = get_theme(theme_name)
+                    if theme_obj is None:
+                        invalid_themes.append(theme_name)
+                
+                # If any theme is invalid, report ALL invalid themes at once
+                if invalid_themes:
+                    logger.error(
+                        f'Unknown theme(s): {", ".join(invalid_themes)}. '
+                        f'Available themes: {", ".join(sorted(available_themes))}'
+                    )
+                    raise typer.Exit(code=1)
+                
+                # All themes are valid, now get Theme objects
+                for theme_name in theme_names_list:
+                    theme_obj = get_theme(theme_name)
+                    theme_list.append(theme_obj)
+                    theme_names.append(theme_obj.name)  # Use actual theme name from Theme object
+                    logger.info(f'Theme validated: {theme_obj.name} - {theme_obj.description}')
         
-        # Apply theme settings (theme overrides individual settings)
-        bg_color = background
-        fg_color = fontcolor
-        colormap_value = colormap
-        relative_scaling_value = relative_scaling
-        prefer_horizontal_value = prefer_horizontal
+        # Determine if we're generating multiple themes
+        multiple_themes = len(theme_list) > 1
         
-        if theme_obj:
-            # Theme takes precedence
-            bg_color = theme_obj.background_color
-            if theme_obj.colormap:
-                colormap_value = theme_obj.colormap
-                fg_color = None  # Colormap overrides font_color
-            elif theme_obj.font_color:
-                fg_color = theme_obj.font_color
-                colormap_value = None
-            if relative_scaling_value is None:
-                relative_scaling_value = theme_obj.relative_scaling
-            if prefer_horizontal_value is None:
-                prefer_horizontal_value = theme_obj.prefer_horizontal
+        # ========================================================================
+        # STEP 2: Process text ONCE (before generating any word clouds)
+        # ========================================================================
+        logger.info('Processing input file (text processing happens once for all themes)...')
         
-        # Create configuration object
-        config = WordCloudConfig(
+        # Create base config for text processing (doesn't need color/theme settings)
+        base_config = WordCloudConfig(
             canvas_width=canvas_width,
             canvas_height=canvas_height,
             max_words=max_words,
             min_word_length=min_word_length,
             normalize_plurals=normalize_plurals,
             include_numbers=include_numbers,
-            background_color=bg_color,
-            font_color=fg_color,
-            colormap=colormap_value,
-            relative_scaling=relative_scaling_value if relative_scaling_value is not None else 0.5,
-            prefer_horizontal=prefer_horizontal_value if prefer_horizontal_value is not None else 0.9,
-            mask=mask,
-            contour_width=contour_width if contour_width is not None else 0.0,
-            contour_color=contour_color,
-            font_path=font_path,
             language=language,
             include_stopwords=include_stopwords,
             case_sensitive=case_sensitive,
             collocations=collocations
         )
         
-        # Generate word cloud
-        generate_wordcloud(
+        # Process text once to get frequencies
+        frequencies = process_text_to_frequencies(
             input_file=input,
             language=language,
-            output_file=output,
-            config=config,
-            show=not no_show,
+            config=base_config,
             clean_text=not no_clean_text,
-            export_stats=export_stats,
-            stats_output=stats_output,
-            stats_top_n=stats_top_n,
             exclude_words=exclude_words,
             exclude_case_sensitive=exclude_case_sensitive,
             regex_rule=regex_rule,
             regex_case_sensitive=regex_case_sensitive
         )
+        
+        logger.info(f'Text processing complete. Generated {len(frequencies)} unique words.')
+        
+        # ========================================================================
+        # STEP 3: Generate word clouds for each theme (only image generation)
+        # ========================================================================
+        # If multiple themes, adjust show behavior (don't display all, just save)
+        show_clouds = not no_show and not multiple_themes
+        
+        if multiple_themes:
+            logger.info(f'Generating {len(theme_list)} word clouds (one per theme). Each output file will have theme name as suffix (e.g., filename_theme.png).')
+        elif len(theme_list) == 1 and theme_list[0] is not None:
+            logger.info(f'Generating word cloud with theme: {theme_list[0].name}. Output file will have theme name as suffix (e.g., filename_{theme_list[0].name}.png).')
+        elif len(theme_list) == 1 and theme_list[0] is None:
+            logger.info('Generating word cloud without theme (using individual color settings). Output file will NOT have theme suffix.')
+        
+        # Generate word cloud for each theme
+        for idx, theme_obj in enumerate(theme_list):
+            theme_name = theme_names[idx] if idx < len(theme_names) else "default"
+            if theme_obj:
+                if multiple_themes:
+                    logger.info(f'Generating word cloud {idx + 1}/{len(theme_list)}: {theme_obj.name}')
+                else:
+                    logger.info(f'Generating word cloud with theme: {theme_obj.name} - {theme_obj.description}')
+            else:
+                logger.info('Generating word cloud without theme (using individual color settings)')
+            
+            # Apply theme settings (theme overrides individual settings)
+            bg_color = background
+            fg_color = fontcolor
+            colormap_value = colormap
+            relative_scaling_value = relative_scaling
+            prefer_horizontal_value = prefer_horizontal
+            
+            if theme_obj:
+                # Theme takes precedence
+                bg_color = theme_obj.background_color
+                if theme_obj.colormap:
+                    colormap_value = theme_obj.colormap
+                    fg_color = None  # Colormap overrides font_color
+                elif theme_obj.font_color:
+                    fg_color = theme_obj.font_color
+                    colormap_value = None
+                if relative_scaling_value is None:
+                    relative_scaling_value = theme_obj.relative_scaling
+                if prefer_horizontal_value is None:
+                    prefer_horizontal_value = theme_obj.prefer_horizontal
+            
+            # Validate colors if provided manually (theme colors are already validated)
+            if bg_color and not theme_obj:
+                try:
+                    bg_color = validate_color_reference(bg_color)
+                except ValidationError as e:
+                    logger.error(f'Invalid background color: {e}')
+                    raise typer.Exit(code=1)
+            if fg_color and not theme_obj:
+                try:
+                    fg_color = validate_color_reference(fg_color)
+                except ValidationError as e:
+                    logger.error(f'Invalid font color: {e}')
+                    raise typer.Exit(code=1)
+            
+            # Generate output filename with theme suffix (always add suffix when theme is used)
+            theme_output = generate_output_file_with_theme_suffix(
+                base_output=output,
+                input_file=input,
+                theme_name=theme_name if theme_name else "default",
+                has_theme=(theme_obj is not None)
+            )
+            
+            # Create configuration object for this theme (only visual settings)
+            theme_config = WordCloudConfig(
+                canvas_width=canvas_width,
+                canvas_height=canvas_height,
+                max_words=max_words,
+                min_word_length=min_word_length,
+                normalize_plurals=normalize_plurals,
+                include_numbers=include_numbers,
+                background_color=bg_color,
+                font_color=fg_color,
+                colormap=colormap_value,
+                relative_scaling=relative_scaling_value if relative_scaling_value is not None else 0.5,
+                prefer_horizontal=prefer_horizontal_value if prefer_horizontal_value is not None else 0.9,
+                mask=mask,
+                contour_width=contour_width if contour_width is not None else 0.0,
+                contour_color=contour_color,
+                font_path=font_path,
+                language=language,
+                include_stopwords=include_stopwords,
+                case_sensitive=case_sensitive,
+                collocations=collocations
+            )
+            
+            # Generate word cloud from frequencies (only image generation, no text processing)
+            show_this_one = show_clouds and idx == 0
+            
+            generate_word_cloud_from_frequencies(
+                frequencies=frequencies,
+                config=theme_config,
+                output_file=theme_output,
+                show=show_this_one
+            )
+            
+            logger.info(f'Word cloud saved to {theme_output}')
+        
+        # Export statistics if requested (only once, for the first theme)
+        if export_stats:
+            # Auto-generate stats output filename if not provided
+            if stats_output is None:
+                if output:
+                    stats_output = os.path.splitext(output)[0]
+                else:
+                    stats_output = os.path.splitext(generate_output_filename(input, '.png'))[0]
+            
+            # Export both JSON and CSV
+            json_file, csv_file = export_statistics(
+                frequencies=frequencies,
+                base_output_file=stats_output,
+                top_n=stats_top_n
+            )
+            logger.info(f'Statistics exported: {json_file} and {csv_file}')
         
     except WordCloudServiceError as e:
         logger.error(f'Error generating word cloud: {e}')
@@ -355,39 +598,79 @@ def list_themes():
     """
     List all available themes with their descriptions.
     
-    This command displays all 34 available themes organized by category,
+    This command displays all available themes organized by category,
     making it easy to find the perfect theme for your word cloud.
     """
     from src.themes import list_themes as get_all_themes
     
     themes = get_all_themes()
     
-    # Organize themes by category
+    # Organize themes by category (based on current themes)
+    # All themes listed here are built-in themes defined in themes.py
+    # Each theme appears only once in its most appropriate category
     categories = {
-        'Classic & Minimal': ['classic', 'minimal', 'high-contrast'],
-        'Dark Themes': ['dark', 'vibrant', 'inferno', 'magma', 'hot', 'jet', 'turbo', 'dark2'],
-        'Seasonal': ['spring', 'summer', 'autumn', 'winter'],
-        'Color-Based': ['blues', 'greens', 'reds', 'purples', 'oranges'],
-        'Specialized': ['ocean', 'sunset', 'cool', 'rainbow'],
-        'Diverging': ['spectral', 'rdbu'],
-        'Qualitative': ['set1', 'set2', 'pastel', 'pastel2', 'tab10', 'tab20', 'accent']
+        'Dark': [
+            'blackboard', 'blood', 'bombons', 'fluorescent', 'halloween', 
+            'neon', 'night', 'pinky', 'sauvage', 'markers', 'loretta', 'gossip'
+        ],
+        'Light': [
+            'day', 'garden', 'high_contrast', 'homely', 'office', 
+            'playroom', 'sakura', 'soft', 'clouds', 'cadiz'
+        ],
+        'Vibrant': [
+            'brazil', 'carrots', 'golden', 'gum', 'piruleta', 'radical', 
+            'solarized', 'spring', 'strawberry', 'summer', 'autumn', 'mint'
+        ],
+        'Elegant': [
+            'elegance', 'grey', 'joy', 'old', 'pharaon', 'river', 
+            'winter', 'sober'
+        ],
+        'Nature': [
+            'jungle', 'woods', 'stars', 'lake'
+        ]
     }
+    
+    # Track which themes have been categorized
+    categorized_themes = set()
+    for theme_names_list in categories.values():
+        categorized_themes.update(theme_name.lower() for theme_name in theme_names_list)
+    
+    # Find uncategorized themes
+    all_theme_names = set(themes.keys())
+    uncategorized = all_theme_names - categorized_themes
     
     print("\n" + "="*70)
     print("Available Word Cloud Themes")
     print("="*70)
     print(f"\nTotal themes: {len(themes)}\n")
     
+    # Print categorized themes
     for category, theme_names in categories.items():
-        print(f"\n{category}:")
-        print("-" * 70)
+        found_themes = []
         for theme_name in theme_names:
+            theme = themes.get(theme_name.lower())
+            if theme:
+                found_themes.append(theme)
+        
+        if found_themes:  # Only print category if it has themes
+            print(f"\n{category}:")
+            print("-" * 70)
+            for theme in found_themes:
+                print(f"  {theme.name:20} - {theme.description}")
+    
+    # Print uncategorized themes if any
+    if uncategorized:
+        print(f"\nOther:")
+        print("-" * 70)
+        for theme_name in sorted(uncategorized):
             theme = themes.get(theme_name.lower())
             if theme:
                 print(f"  {theme.name:20} - {theme.description}")
     
     print("\n" + "="*70)
     print("Usage: python nubisary.py generate -i file.txt -l english --theme <theme-name>")
+    print("Note: All themes above are built-in themes (defined in themes.py)")
+    print("      For custom themes from JSON files, use --custom-theme")
     print("For detailed documentation, see THEMES.md")
     print("="*70 + "\n")
 
@@ -462,3 +745,4 @@ def convert(
 
 if __name__ == '__main__':
     app()
+

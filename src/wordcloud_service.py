@@ -46,6 +46,113 @@ class WordCloudServiceError(Exception):
     pass
 
 
+def process_text_to_frequencies(
+    input_file: str,
+    language: str,
+    config: WordCloudConfig,
+    clean_text: bool = True,
+    exclude_words: Optional[str] = None,
+    exclude_case_sensitive: bool = False,
+    regex_rule: Optional[str] = None,
+    regex_case_sensitive: bool = False
+) -> Dict[str, float]:
+    """
+    Process input file (text, JSON, PDF, DOCX) and extract word frequencies.
+    This function only processes the text once, returning the frequencies dictionary.
+    
+    Args:
+        input_file: Path to input file (text, JSON, PDF, DOC, or DOCX)
+        language: Language code for text processing (required for text files)
+        config: WordCloudConfig object with processing settings
+        clean_text: If True, apply text cleaning when converting documents (default: True)
+        exclude_words: Optional string with words/phrases to exclude (file path or comma-separated list)
+        exclude_case_sensitive: If True, exclude matching is case-sensitive (default: False)
+        regex_rule: Optional regex rule or file path. Format: "pattern" or "pattern|replacement"
+        regex_case_sensitive: If True, regex matching is case-sensitive (default: False)
+        
+    Returns:
+        Dictionary mapping words to their frequencies
+        
+    Raises:
+        WordCloudServiceError: For any service-level errors
+        ValidationError: For validation errors
+        FileHandlerError: For file I/O errors
+    """
+    try:
+        # Validate input file
+        validate_input_file(input_file)
+        
+        # Check if input is JSON
+        is_json = is_json_file(input_file)
+        
+        # Check if input is a convertible document
+        is_document = is_convertible_document(input_file) if not is_json else False
+        
+        # Validate JSON format if applicable
+        if is_json:
+            validate_json_format(input_file)
+        else:
+            # Validate language for text files (including documents that will be converted)
+            validate_language(language, config.include_stopwords)
+        
+        # Process input based on type
+        if is_json:
+            # Read frequencies from JSON
+            frequencies = read_json_file(input_file)
+            logger.info('Loaded word frequencies from JSON file')
+        else:
+            # Read and process text file (auto-converts documents if needed)
+            if is_document:
+                logger.info(f'Converting document to text...')
+                if clean_text:
+                    logger.info(f'Text cleaning enabled (removing page numbers, excessive blank lines)')
+            text = read_text_file(input_file, auto_convert=True, clean_text=clean_text)
+            if is_document:
+                logger.info(f'Document converted successfully')
+            
+            # Remove excluded words/phrases if specified
+            if exclude_words:
+                excluded_items = parse_exclude_words_argument(exclude_words)
+                if excluded_items:
+                    logger.info(f'Removing {len(excluded_items)} excluded word(s)/phrase(s) from text')
+                    text = remove_excluded_text(text, excluded_items, exclude_case_sensitive)
+                    logger.info('Excluded words/phrases removed from text')
+            
+            # Apply regex transformations if specified
+            if regex_rule:
+                regex_rules = parse_regex_rule_argument(regex_rule)
+                if regex_rules:
+                    logger.info(f'Applying {len(regex_rules)} regex rule(s) to text')
+                    text = apply_regex_transformations(text, regex_rules, regex_case_sensitive)
+                    logger.info('Regex transformations applied to text')
+            
+            text_processed = preprocess_text(text, config.case_sensitive)
+            
+            # Generate word frequencies
+            frequencies = generate_word_count_from_text(
+                text=text_processed,
+                language=language,
+                include_stopwords=config.include_stopwords,
+                collocations=config.collocations,
+                max_words=config.max_words,
+                min_word_length=config.min_word_length,
+                normalize_plurals=config.normalize_plurals,
+                include_numbers=config.include_numbers,
+                canvas_width=config.canvas_width,
+                canvas_height=config.canvas_height
+            )
+            logger.info(f'Generated word frequencies from text ({len(frequencies)} unique words)')
+        
+        return frequencies
+        
+    except (ValidationError, FileHandlerError, JSONParseError) as e:
+        logger.error(str(e))
+        raise WordCloudServiceError(str(e)) from e
+    except Exception as e:
+        logger.error(f'Unexpected error: {e}')
+        raise WordCloudServiceError(f'Unexpected error: {e}') from e
+
+
 def generate_wordcloud(
     input_file: str,
     language: str,
@@ -119,6 +226,10 @@ def generate_wordcloud(
         if config.font_color:
             config.font_color = validate_color_reference(config.font_color)
         
+        # Check if input is JSON or document for logging
+        is_json = is_json_file(input_file)
+        is_document = is_convertible_document(input_file) if not is_json else False
+        
         # Log settings
         logger.info('Settings:')
         logger.info(f'  - Input file: {input_file}')
@@ -160,53 +271,17 @@ def generate_wordcloud(
             logger.info(f'  - Regex rule: {regex_rule}')
             logger.info(f'  - Regex case sensitive: {regex_case_sensitive}')
         
-        # Process input based on type
-        if is_json:
-            # Read frequencies from JSON
-            frequencies = read_json_file(input_file)
-            logger.info('Loaded word frequencies from JSON file')
-        else:
-            # Read and process text file (auto-converts documents if needed)
-            if is_document:
-                logger.info(f'Converting document to text...')
-                if clean_text:
-                    logger.info(f'Text cleaning enabled (removing page numbers, excessive blank lines)')
-            text = read_text_file(input_file, auto_convert=True, clean_text=clean_text)
-            if is_document:
-                logger.info(f'Document converted successfully')
-            
-            # Remove excluded words/phrases if specified
-            if exclude_words:
-                excluded_items = parse_exclude_words_argument(exclude_words)
-                if excluded_items:
-                    logger.info(f'Removing {len(excluded_items)} excluded word(s)/phrase(s) from text')
-                    text = remove_excluded_text(text, excluded_items, exclude_case_sensitive)
-                    logger.info('Excluded words/phrases removed from text')
-            
-            # Apply regex transformations if specified
-            if regex_rule:
-                regex_rules = parse_regex_rule_argument(regex_rule)
-                if regex_rules:
-                    logger.info(f'Applying {len(regex_rules)} regex rule(s) to text')
-                    text = apply_regex_transformations(text, regex_rules, regex_case_sensitive)
-                    logger.info('Regex transformations applied to text')
-            
-            text_processed = preprocess_text(text, config.case_sensitive)
-            
-            # Generate word frequencies
-            frequencies = generate_word_count_from_text(
-                text=text_processed,
-                language=language,
-                include_stopwords=config.include_stopwords,
-                collocations=config.collocations,
-                max_words=config.max_words,
-                min_word_length=config.min_word_length,
-                normalize_plurals=config.normalize_plurals,
-                include_numbers=config.include_numbers,
-                canvas_width=config.canvas_width,
-                canvas_height=config.canvas_height
-            )
-            logger.info(f'Generated word frequencies from text ({len(frequencies)} unique words)')
+        # Process input to get frequencies
+        frequencies = process_text_to_frequencies(
+            input_file=input_file,
+            language=language,
+            config=config,
+            clean_text=clean_text,
+            exclude_words=exclude_words,
+            exclude_case_sensitive=exclude_case_sensitive,
+            regex_rule=regex_rule,
+            regex_case_sensitive=regex_case_sensitive
+        )
         
         # Generate and display/save word cloud
         generate_word_cloud_from_frequencies(
