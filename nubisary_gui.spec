@@ -9,6 +9,12 @@ from pathlib import Path
 
 block_cipher = None
 
+# Get the directory where this spec file is located
+# PyInstaller executes spec files with exec(), so __file__ is not available
+# We use the working directory (where pyinstaller is run from) as the base path
+# This assumes the spec file and samples/ directory are in the same directory
+spec_file_dir = os.getcwd()
+
 # Determine if NLTK data should be included
 # For now, we'll let NLTK download at runtime (smaller executable)
 # If you want to bundle NLTK data, uncomment and modify the datas section below
@@ -23,6 +29,24 @@ except:
 
 # Collect data files
 datas = []
+
+# Include preset masks from samples/masks/
+masks_path = os.path.join(spec_file_dir, 'samples', 'masks')
+if os.path.exists(masks_path):
+    # Include all mask files (PNG, JPG, etc.) from samples/masks/
+    mask_files = []
+    for filename in os.listdir(masks_path):
+        file_path = os.path.join(masks_path, filename)
+        if os.path.isfile(file_path):
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp']:
+                mask_files.append(file_path)
+    
+    if mask_files:
+        # Include masks directory with all mask files
+        datas.append((masks_path, 'samples/masks'))
+        print(f"Including {len(mask_files)} mask files in bundle")
+
 # Uncomment to bundle NLTK data (increases executable size significantly):
 # if nltk_data_path and os.path.exists(nltk_data_path):
 #     # Include only essential NLTK data (punkt, stopwords for common languages)
@@ -45,6 +69,8 @@ hiddenimports = [
     'tkinter.ttk',
     'tkinter.filedialog',
     'tkinter.messagebox',
+    'tkinter.colorchooser',
+    'tkcolorpicker',  # Enhanced color picker (optional, has fallback)
     
     # Core dependencies
     'wordcloud',
@@ -82,6 +108,9 @@ hiddenimports = [
     'src.document_converter',
     'src.validators',
     'src.themes',
+    'src.custom_themes',
+    'src.custom_colormaps',
+    'src.resource_loader',
     'src.statistics_exporter',
     'src.logger',
     'gui',

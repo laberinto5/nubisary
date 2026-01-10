@@ -41,18 +41,33 @@ Click **"Browse..."** next to the "Input File" field to select your source file.
 Choose the language of your text from the **Language** dropdown menu.
 
 **Supported Languages:**
-The GUI supports the same 23 languages as the CLI, including:
-- English
-- Spanish
-- French
-- German
-- Italian
-- Portuguese
-- And many more...
+The GUI supports 18 languages with verified NLTK stopwords support:
+
+**European Languages:**
+- **English** (198 stopwords)
+- **Spanish** / Español (313 stopwords)
+- **French** / Français (157 stopwords)
+- **Italian** / Italiano (279 stopwords)
+- **Portuguese** / Português (207 stopwords)
+- **German** / Deutsch (232 stopwords)
+- **Dutch** / Nederlands (101 stopwords)
+- **Russian** / русский (151 stopwords)
+- **Greek** / Ελληνικά (265 stopwords)
+- **Danish** / dansk (94 stopwords)
+- **Norwegian** / norsk (176 stopwords)
+- **Swedish** / svenska (114 stopwords)
+- **Finnish** / suomi (235 stopwords)
+- **Turkish** / Türkçe (53 stopwords)
+
+**Other Languages:**
+- **Arabic** / العربية (754 stopwords)
+- **Chinese** / 中文 (841 stopwords)
+- **Hebrew** / עברית (221 stopwords)
+- **Indonesian** / Bahasa Indonesia (758 stopwords)
 
 The language is used for:
-- Stopword filtering (common words like "the", "a", "and")
-- Text processing optimization
+- Stopword filtering (common words like "the", "a", "and" in English; "el", "la", "y" in Spanish, etc.)
+- Automatic removal of language-specific common words to focus on meaningful content
 
 ### 3. Text Processing Options
 

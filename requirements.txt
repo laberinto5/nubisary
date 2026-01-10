@@ -16,6 +16,9 @@ python-docx>=1.0.0    # DOCX text extraction
 # Note: .doc format is not supported to avoid external dependencies
 # Users should convert .doc files to .docx or .txt first
 
+# GUI dependencies
+tkcolorpicker2>=2.1.1  # Enhanced color picker with HSV/HSL interface (optional, has fallback to native colorchooser)
+
 # Testing
 pytest>=7.0.0
 pytest-cov>=4.0.0  # For coverage reports

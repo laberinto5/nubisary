@@ -5,11 +5,26 @@ from typing import Optional
 
 
 # Supported languages for NLTK stopwords
+# All languages with verified NLTK stopwords support are included
 LANGUAGES_FOR_NLTK = [
-    'english', 'spanish', 'portuguese', 'french', 'german', 'italian',
-    'russian', 'dutch', 'swedish', 'danish', 'norwegian', 'finnish',
-    'turkish', 'greek', 'arabic', 'chinese', 'japanese', 'korean',
-    'thai', 'hebrew', 'hindi', 'indonesian', 'vietnamese'
+    'arabic',       # 754 stopwords (العربية)
+    'chinese',      # 841 stopwords (中文)
+    'danish',       # 94 stopwords (dansk)
+    'dutch',        # 101 stopwords (Nederlands)
+    'english',      # 198 stopwords
+    'finnish',      # 235 stopwords (suomi)
+    'french',       # 157 stopwords (français)
+    'german',       # 232 stopwords (Deutsch)
+    'greek',        # 265 stopwords (Ελληνικά)
+    'hebrew',       # 221 stopwords (עברית)
+    'indonesian',   # 758 stopwords (Bahasa Indonesia)
+    'italian',      # 279 stopwords (italiano)
+    'norwegian',    # 176 stopwords (norsk)
+    'portuguese',   # 207 stopwords (português)
+    'russian',      # 151 stopwords (русский)
+    'spanish',      # 313 stopwords (español)
+    'swedish',      # 114 stopwords (svenska)
+    'turkish'       # 53 stopwords (Türkçe)
 ]
 
 # Valid color names for wordcloud

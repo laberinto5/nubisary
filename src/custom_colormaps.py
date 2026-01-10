@@ -9,6 +9,11 @@ from matplotlib.colors import ListedColormap
 from typing import List, Optional
 
 
+class CustomColormapError(Exception):
+    """Exception raised when custom colormap operations fail."""
+    pass
+
+
 def register_custom_colormap(name: str, colors: List[str], description: Optional[str] = None) -> ListedColormap:
     """
     Create and register a custom colormap with matplotlib.
@@ -25,19 +30,19 @@ def register_custom_colormap(name: str, colors: List[str], description: Optional
         The registered ListedColormap object
         
     Raises:
-        ValueError: If colormap name already exists or colors are invalid
+        CustomColormapError: If colormap name already exists or colors are invalid
     """
     if not name or not name.strip():
-        raise ValueError("Colormap name cannot be empty")
+        raise CustomColormapError("Colormap name cannot be empty")
     
     name = name.strip()
     
     # Check if colormap already exists
     if name in matplotlib.colormaps:
-        raise ValueError(f"Colormap '{name}' already exists")
+        raise CustomColormapError(f"Colormap '{name}' already exists")
     
     if not colors or len(colors) < 2:
-        raise ValueError("Colormap must have at least 2 colors")
+        raise CustomColormapError("Colormap must have at least 2 colors")
     
     # Create ListedColormap from color list
     # ListedColormap creates a discrete colormap from a list of colors
@@ -60,24 +65,24 @@ def register_colormaps_from_config(colormaps_config: List[dict]) -> None:
             - 'description': Optional description
             
     Raises:
-        ValueError: If configuration is invalid
+        CustomColormapError: If configuration is invalid
     """
     for cmap_config in colormaps_config:
         if not isinstance(cmap_config, dict):
-            raise ValueError("Each colormap config must be a dictionary")
+            raise CustomColormapError("Each colormap config must be a dictionary")
         
         name = cmap_config.get('name')
         colors = cmap_config.get('colors')
         
         if not name:
-            raise ValueError("Colormap config missing 'name' field")
+            raise CustomColormapError("Colormap config missing 'name' field")
         if not colors:
-            raise ValueError(f"Colormap '{name}' missing 'colors' field")
+            raise CustomColormapError(f"Colormap '{name}' missing 'colors' field")
         
         description = cmap_config.get('description')
         try:
             register_custom_colormap(name, colors, description)
-        except ValueError as e:
+        except CustomColormapError as e:
             # If it already exists, skip (allow overriding with warning)
             if "already exists" in str(e):
                 import warnings

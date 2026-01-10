@@ -1,0 +1,24 @@
+{
+  "custom_colormaps": [
+    {
+      "name": "sunset_palette",
+      "colors": ["#FF6B6B", "#FF8E53", "#FFA07A", "#FFD700", "#FF6347"],
+      "description": "Warm sunset gradient with oranges, reds, and yellows"
+    },
+    {
+      "name": "ocean_gradient",
+      "colors": ["#001F3F", "#003D7A", "#0074D9", "#39CCCC", "#7FDBFF", "#ADE8E6"],
+      "description": "Ocean depth gradient from deep blue to light cyan"
+    }
+  ],
+  "theme": {
+    "name": "example-sunset-theme",
+    "background_color": "#2D1810",
+    "colormap": "sunset_palette",
+    "font_color": null,
+    "relative_scaling": 0.6,
+    "prefer_horizontal": 0.85,
+    "description": "Example custom theme with sunset gradient. Dark warm background with vibrant orange-red-yellow palette."
+  }
+}
+

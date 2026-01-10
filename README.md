@@ -16,7 +16,7 @@
   - Font selection
   - Canvas size control
 - **Statistics Export**: Export word frequencies to JSON and CSV
-- **Multi-language Support**: Built-in stopword support for 23 languages
+- **Multi-language Support**: Built-in stopword support for 18 languages (Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew, Indonesian, Italian, Norwegian, Portuguese, Russian, Spanish, Swedish, Turkish)
 - **Dual Interface**: 
   - Command-line tool for automation and advanced users
   - Graphical user interface for ease of use

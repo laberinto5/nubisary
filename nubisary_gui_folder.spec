@@ -27,6 +27,26 @@ except:
 # Collect data files
 datas = []
 
+# Include preset masks from samples/masks/
+# PyInstaller executes spec files with exec(), so __file__ is not available
+# Use current working directory as base path (where pyinstaller is run from)
+spec_file_dir = os.getcwd()
+masks_path = os.path.join(spec_file_dir, 'samples', 'masks')
+if os.path.exists(masks_path):
+    # Include all mask files (PNG, JPG, etc.) from samples/masks/
+    mask_files = []
+    for filename in os.listdir(masks_path):
+        file_path = os.path.join(masks_path, filename)
+        if os.path.isfile(file_path):
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in ['.png', '.jpg', '.jpeg', '.bmp', '.gif', '.webp']:
+                mask_files.append(file_path)
+    
+    if mask_files:
+        # Include masks directory with all mask files
+        datas.append((masks_path, 'samples/masks'))
+        print(f"Including {len(mask_files)} mask files in bundle")
+
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
     # GUI related
@@ -75,6 +95,9 @@ hiddenimports = [
     'src.document_converter',
     'src.validators',
     'src.themes',
+    'src.custom_themes',
+    'src.custom_colormaps',
+    'src.resource_loader',
     'src.statistics_exporter',
     'src.logger',
     'gui',

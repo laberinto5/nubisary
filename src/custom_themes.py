@@ -11,7 +11,7 @@ from typing import Dict, Optional, List
 from pathlib import Path
 
 from src.themes import Theme, register_theme
-from src.custom_colormaps import register_custom_colormap, register_colormaps_from_config
+from src.custom_colormaps import register_custom_colormap, register_colormaps_from_config, CustomColormapError
 from src.file_handlers import FileHandlerError
 
 
@@ -75,7 +75,7 @@ def load_custom_theme_from_json(json_file: str) -> Theme:
         
         try:
             register_colormaps_from_config(data['custom_colormaps'])
-        except ValueError as e:
+        except CustomColormapError as e:
             raise CustomThemeError(f"Error registering custom colormaps: {e}")
     
     # Load theme definition
@@ -192,4 +192,63 @@ def validate_custom_theme_json(json_file: str) -> Dict:
         raise CustomThemeError("'custom_colormaps' must be a list")
     
     return data
+
+
+def save_theme_to_json(theme: Theme, custom_colormap: Optional[Dict] = None, output_file: str = None) -> str:
+    """
+    Save a theme to a JSON file.
+    
+    Args:
+        theme: Theme object to save
+        custom_colormap: Optional dict with colormap data (name, colors, description)
+        output_file: Path to output JSON file (if None, uses theme name)
+        
+    Returns:
+        Path to the saved JSON file
+        
+    Raises:
+        CustomThemeError: If theme is invalid or file cannot be written
+        FileHandlerError: If file I/O fails
+    """
+    # Validate theme
+    if not theme.name or not theme.name.strip():
+        raise CustomThemeError("Theme name cannot be empty")
+    if not theme.background_color or not theme.background_color.strip():
+        raise CustomThemeError("Theme background_color cannot be empty")
+    
+    # Determine output file path
+    if output_file is None:
+        # Use theme name as filename
+        safe_name = theme.name.lower().replace(' ', '_').replace('/', '_')
+        output_file = f"{safe_name}_theme.json"
+    
+    # Ensure .json extension
+    if not output_file.endswith('.json'):
+        output_file = output_file + '.json'
+    
+    # Build JSON structure
+    data = {
+        "theme": {
+            "name": theme.name,
+            "background_color": theme.background_color,
+            "colormap": theme.colormap,
+            "font_color": theme.font_color,
+            "relative_scaling": theme.relative_scaling,
+            "prefer_horizontal": theme.prefer_horizontal,
+            "description": theme.description or ""
+        }
+    }
+    
+    # Add custom colormap if provided
+    if custom_colormap:
+        data["custom_colormaps"] = [custom_colormap]
+    
+    # Write JSON file
+    try:
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+    except Exception as e:
+        raise FileHandlerError(f"Error writing custom theme file {output_file}: {e}")
+    
+    return output_file
 
