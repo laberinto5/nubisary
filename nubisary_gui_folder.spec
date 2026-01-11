@@ -14,6 +14,12 @@ from pathlib import Path
 # Example: block_cipher = pyi_crypto.PyiBlockCipher('Your16CharKey!')
 block_cipher = None  # Change to enable encryption (requires pyinstaller[encryption])
 
+# Get the directory where this spec file is located
+# PyInstaller executes spec files with exec(), so __file__ is not available
+# We use the working directory (where pyinstaller is run from) as the base path
+# This assumes the spec file and samples/ directory are in the same directory
+spec_file_dir = os.getcwd()
+
 # Determine if NLTK data should be included
 nltk_data_path = None
 try:
@@ -39,14 +45,7 @@ favicon_path = os.path.join(spec_file_dir, 'favicon.ico')
 if os.path.exists(favicon_path):
     datas.append(('favicon.ico', '.'))
 
-# Include favicon (for runtime icon changes if needed)
-if os.path.exists('favicon.ico'):
-    datas.append(('favicon.ico', '.'))
-
 # Include preset masks from samples/masks/
-# PyInstaller executes spec files with exec(), so __file__ is not available
-# Use current working directory as base path (where pyinstaller is run from)
-spec_file_dir = os.getcwd()
 masks_path = os.path.join(spec_file_dir, 'samples', 'masks')
 if os.path.exists(masks_path):
     # Include all mask files (PNG, JPG, etc.) from samples/masks/
