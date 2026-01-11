@@ -59,7 +59,7 @@ class WordCloudGUI:
         """Initialize Tkinter variables."""
         self.input_file = tk.StringVar()
         self.output_file = tk.StringVar()
-        self.language = tk.StringVar(value="english")
+        self.language = tk.StringVar(value="spanish")
         self.theme = tk.StringVar(value="spring")
         
         # Processing options

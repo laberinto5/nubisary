@@ -23,8 +23,12 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pyinstaller
+        python -m pip install -r requirements.txt
+        python -m pip install pyinstaller
+    
+    - name: Verify NLTK installation
+      run: |
+        python -c "import nltk; print(f'NLTK version: {nltk.__version__}')"
     
     - name: Download NLTK data
       run: |
