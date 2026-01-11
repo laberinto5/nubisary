@@ -27,6 +27,13 @@ except:
 # Collect data files
 datas = []
 
+# Include help documentation
+help_files = [
+    ('documentation/GUI_HELP_EN.md', 'documentation'),
+    ('documentation/GUI_HELP_ES.md', 'documentation'),
+]
+datas.extend(help_files)
+
 # Include preset masks from samples/masks/
 # PyInstaller executes spec files with exec(), so __file__ is not available
 # Use current working directory as base path (where pyinstaller is run from)

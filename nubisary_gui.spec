@@ -30,6 +30,13 @@ except:
 # Collect data files
 datas = []
 
+# Include help documentation
+help_files = [
+    ('documentation/GUI_HELP_EN.md', 'documentation'),
+    ('documentation/GUI_HELP_ES.md', 'documentation'),
+]
+datas.extend(help_files)
+
 # Include preset masks from samples/masks/
 masks_path = os.path.join(spec_file_dir, 'samples', 'masks')
 if os.path.exists(masks_path):

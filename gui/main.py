@@ -1,11 +1,14 @@
 """Main GUI window for Nubisary."""
 
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import ttk, filedialog, messagebox, scrolledtext
 from pathlib import Path
 from PIL import Image, ImageTk
 import threading
 import json
+import locale
+import os
+import sys
 
 try:
     from tkcolorpicker import askcolor as color_picker
@@ -21,7 +24,7 @@ from src.themes import get_theme, get_theme_names, Theme
 from src.file_handlers import is_json_file, is_convertible_document, FileHandlerError
 from src.custom_themes import load_custom_theme_from_json, save_theme_to_json, CustomThemeError
 from src.custom_colormaps import register_custom_colormap, is_colormap_registered, CustomColormapError
-from src.resource_loader import list_mask_files, get_mask_path
+from src.resource_loader import list_mask_files, get_mask_path, get_resource_path
 from src.font_loader import list_font_files, get_font_path
 
 
@@ -32,6 +35,7 @@ class WordCloudGUI:
         self.root = root
         self.setup_window()
         self.setup_variables()
+        self.setup_menu()
         self.create_widgets()
         
         # Store preview image reference
@@ -55,6 +59,137 @@ class WordCloudGUI:
         self.root.geometry(f'{width}x{height}+{x}+{y}')
         # Clean up temporary files when window is closed
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+    
+    def setup_menu(self):
+        """Configure menu bar with Help menu."""
+        menubar = tk.Menu(self.root)
+        self.root.config(menu=menubar)
+        
+        # Help menu
+        help_menu = tk.Menu(menubar, tearoff=0)
+        help_menu.add_command(label="User Manual (English)", command=lambda: self.show_help('en'))
+        help_menu.add_command(label="Manual de Usuario (Español)", command=lambda: self.show_help('es'))
+        help_menu.add_separator()
+        help_menu.add_command(label="About Nubisary...", command=self.show_about)
+        menubar.add_cascade(label="Help", menu=help_menu)
+        
+        # Bind F1 key to show help
+        self.root.bind('<F1>', lambda e: self.show_help(self._detect_help_language()))
+    
+    def _detect_help_language(self) -> str:
+        """Detect preferred help language based on system locale or GUI language setting."""
+        try:
+            # Try to get system locale
+            system_lang, _ = locale.getdefaultlocale()
+            if system_lang:
+                lang_code = system_lang.split('_')[0].lower()
+                if lang_code == 'es':
+                    return 'es'
+        except:
+            pass
+        
+        # Fallback: use GUI language setting if Spanish
+        if self.language.get().lower() == 'spanish':
+            return 'es'
+        
+        # Default to English
+        return 'en'
+    
+    def show_help(self, language: str = 'en'):
+        """Open help window with user manual in specified language."""
+        # Determine help file based on language
+        if language == 'es':
+            help_file = 'documentation/GUI_HELP_ES.md'
+            window_title = "Manual de Usuario - Nubisary"
+        else:
+            help_file = 'documentation/GUI_HELP_EN.md'
+            window_title = "Nubisary - User Manual"
+        
+        # Get resource path (works in dev and PyInstaller)
+        help_path = get_resource_path(help_file)
+        
+        # Create help window
+        help_window = tk.Toplevel(self.root)
+        help_window.title(window_title)
+        help_window.geometry("900x700")
+        
+        # Center window on screen
+        help_window.update_idletasks()
+        width = help_window.winfo_width()
+        height = help_window.winfo_height()
+        x = (help_window.winfo_screenwidth() // 2) - (width // 2)
+        y = (help_window.winfo_screenheight() // 2) - (height // 2)
+        help_window.geometry(f'{width}x{height}+{x}+{y}')
+        
+        # Main frame with padding
+        main_frame = ttk.Frame(help_window, padding="10")
+        main_frame.pack(fill=tk.BOTH, expand=True)
+        
+        # Text widget with scrollbar
+        text_frame = ttk.Frame(main_frame)
+        text_frame.pack(fill=tk.BOTH, expand=True)
+        
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        help_text = scrolledtext.ScrolledText(
+            text_frame,
+            wrap=tk.WORD,
+            yscrollcommand=scrollbar.set,
+            font=("TkDefaultFont", 10),
+            padx=10,
+            pady=10
+        )
+        help_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.config(command=help_text.yview)
+        
+        # Load help content
+        try:
+            if os.path.exists(help_path):
+                with open(help_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                # Simple markdown to plain text conversion (remove # headers, keep structure)
+                # For now, just display as-is (markdown is readable enough)
+                help_text.insert('1.0', content)
+            else:
+                error_msg = f"Help file not found: {help_path}\n\n"
+                if language == 'es':
+                    error_msg += "Por favor, consulta la documentación en el directorio 'documentation/'."
+                else:
+                    error_msg += "Please consult the documentation in the 'documentation/' directory."
+                help_text.insert('1.0', error_msg)
+        except Exception as e:
+            error_msg = f"Error loading help file: {str(e)}\n\n"
+            if language == 'es':
+                error_msg += "Por favor, consulta la documentación en el directorio 'documentation/'."
+            else:
+                error_msg += "Please consult the documentation in the 'documentation/' directory."
+            help_text.insert('1.0', error_msg)
+        
+        help_text.config(state=tk.DISABLED)  # Make read-only
+        
+        # Close button
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(fill=tk.X, pady=(10, 0))
+        
+        if language == 'es':
+            close_text = "Cerrar"
+        else:
+            close_text = "Close"
+        
+        ttk.Button(button_frame, text=close_text, command=help_window.destroy).pack()
+    
+    def show_about(self):
+        """Show about dialog."""
+        about_text = (
+            "Nubisary - Word Cloud Generator\n\n"
+            "Version: 1.0\n"
+            "Created with Python and Tkinter\n\n"
+            "A powerful tool for creating beautiful word clouds\n"
+            "from text, PDF, DOCX, and JSON files.\n\n"
+            "For more information, visit the project repository."
+        )
+        messagebox.showinfo("About Nubisary", about_text)
     
     def setup_variables(self):
         """Initialize Tkinter variables."""
