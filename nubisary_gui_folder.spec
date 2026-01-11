@@ -47,6 +47,23 @@ if os.path.exists(masks_path):
         datas.append((masks_path, 'samples/masks'))
         print(f"Including {len(mask_files)} mask files in bundle")
 
+# Include preset fonts from samples/fonts/
+fonts_path = os.path.join(spec_file_dir, 'samples', 'fonts')
+if os.path.exists(fonts_path):
+    # Include all font files (TTF, OTF) from samples/fonts/
+    font_files = []
+    for filename in os.listdir(fonts_path):
+        file_path = os.path.join(fonts_path, filename)
+        if os.path.isfile(file_path):
+            ext = os.path.splitext(filename)[1].lower()
+            if ext in ['.ttf', '.otf']:
+                font_files.append((file_path, 'samples/fonts'))
+    
+    if font_files:
+        # Include fonts directory with all font files
+        datas.append((fonts_path, 'samples/fonts'))
+        print(f"Including {len(font_files)} font files in bundle")
+
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
     # GUI related
@@ -98,6 +115,7 @@ hiddenimports = [
     'src.custom_themes',
     'src.custom_colormaps',
     'src.resource_loader',
+    'src.font_loader',
     'src.statistics_exporter',
     'src.logger',
     'gui',

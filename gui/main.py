@@ -22,6 +22,7 @@ from src.file_handlers import is_json_file, is_convertible_document, FileHandler
 from src.custom_themes import load_custom_theme_from_json, save_theme_to_json, CustomThemeError
 from src.custom_colormaps import register_custom_colormap, is_colormap_registered, CustomColormapError
 from src.resource_loader import list_mask_files, get_mask_path
+from src.font_loader import list_font_files, get_font_path
 
 
 class WordCloudGUI:
@@ -94,6 +95,7 @@ class WordCloudGUI:
         self.preset_mask = tk.StringVar(value="")  # Selected preset mask filename
         self.contour_width = tk.DoubleVar(value=0.0)
         self.contour_color = tk.StringVar(value="")
+        self.preset_font = tk.StringVar(value="Default")
         self.font_path = tk.StringVar(value="")
         
         # Export options
@@ -304,11 +306,37 @@ class WordCloudGUI:
         ttk.Label(contour_frame, text="Contour color:").pack(side=tk.LEFT, padx=5)
         ttk.Entry(contour_frame, textvariable=self.contour_color, width=15).pack(side=tk.LEFT, padx=5)
         
-        # Font path
-        font_frame = ttk.Frame(self.advanced_frame)
-        font_frame.pack(fill=tk.X, pady=5)
-        ttk.Button(font_frame, text="Select Custom Font", command=self.on_select_font).pack(side=tk.LEFT, padx=5)
-        ttk.Label(font_frame, textvariable=self.font_path, width=40).pack(side=tk.LEFT, padx=5)
+        # Font selection (preset fonts + custom file)
+        font_label_frame = ttk.Frame(self.advanced_frame)
+        font_label_frame.pack(fill=tk.X, pady=5)
+        ttk.Label(font_label_frame, text="Font:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        
+        # Preset fonts dropdown
+        preset_font_frame = ttk.Frame(self.advanced_frame)
+        preset_font_frame.pack(fill=tk.X, pady=2)
+        ttk.Label(preset_font_frame, text="Preset font:").pack(side=tk.LEFT, padx=5)
+        
+        # Get available preset fonts (with friendly display names)
+        preset_fonts = list_font_files(without_extension=True, with_display_names=True)
+        preset_font_values = ["Default"] + preset_fonts + ["Custom..."]
+        
+        self.preset_font_combo = ttk.Combobox(
+            preset_font_frame, 
+            textvariable=self.preset_font, 
+            values=preset_font_values, 
+            state="readonly", 
+            width=30,
+            postcommand=self._update_preset_font_list  # Refresh list on dropdown
+        )
+        self.preset_font_combo.pack(side=tk.LEFT, padx=5)
+        self.preset_font_combo.set("Default")
+        self.preset_font_combo.bind("<<ComboboxSelected>>", self._on_preset_font_selected)
+        
+        # Custom font file selection
+        font_custom_frame = ttk.Frame(self.advanced_frame)
+        font_custom_frame.pack(fill=tk.X, pady=2)
+        ttk.Button(font_custom_frame, text="Select Custom Font", command=self.on_select_font).pack(side=tk.LEFT, padx=5)
+        ttk.Label(font_custom_frame, textvariable=self.font_path, width=40, foreground="gray").pack(side=tk.LEFT, padx=5)
         
         # Export statistics
         export_frame = ttk.Frame(self.advanced_frame)
@@ -714,8 +742,42 @@ class WordCloudGUI:
             self._update_preset_mask_list()
             self.preset_mask.set("Custom...")
     
+    def _update_preset_font_list(self):
+        """Update the preset font combobox with current available fonts (with friendly display names)."""
+        preset_fonts = list_font_files(without_extension=True, with_display_names=True)
+        preset_font_values = ["Default"] + preset_fonts + ["Custom..."]
+        self.preset_font_combo.config(values=preset_font_values)
+    
+    def _on_preset_font_selected(self, event=None):
+        """Handle preset font selection change."""
+        selected = self.preset_font.get()
+        
+        if selected == "Default":
+            # Clear both preset and custom font
+            self.font_path.set("")
+        elif selected == "Custom...":
+            # Open file dialog for custom font
+            self.on_select_font()
+            # Reset combobox to show selected file name if a file was chosen
+            if self.font_path.get():
+                # Keep "Custom..." selected to show we're using a custom file
+                pass
+            else:
+                # User cancelled, reset to Default
+                self.preset_font.set("Default")
+        else:
+            # Preset font selected - get the font path
+            font_path = get_font_path(selected)
+            if font_path:
+                self.font_path.set(font_path)
+            else:
+                # Font not found, reset to Default
+                self.preset_font.set("Default")
+                self.font_path.set("")
+                messagebox.showerror("Error", f"Font '{selected}' not found.")
+    
     def on_select_font(self):
-        """Handle font file selection."""
+        """Handle custom font file selection."""
         filetypes = [
             ("Font files", "*.ttf *.otf"),
             ("TTF files", "*.ttf"),
@@ -729,6 +791,11 @@ class WordCloudGUI:
         
         if filename:
             self.font_path.set(filename)
+            # Update preset font combobox to show we're using a custom file
+            self.preset_font.set("Custom...")
+            # Update the values to ensure "Custom..." is available
+            self._update_preset_font_list()
+            self.preset_font.set("Custom...")
     
     def on_generate(self):
         """Handle generate button click."""
