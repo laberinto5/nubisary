@@ -34,6 +34,7 @@ class WordCloudGUI:
     def __init__(self, root):
         self.root = root
         self.setup_window()
+        self.setup_styles()  # Setup visual styles first
         self.setup_variables()
         self.setup_menu()
         self.create_widgets()
@@ -59,6 +60,150 @@ class WordCloudGUI:
         self.root.geometry(f'{width}x{height}+{x}+{y}')
         # Clean up temporary files when window is closed
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
+        
+        # Set favicon/icon
+        try:
+            icon_path = get_resource_path('favicon.ico')
+            if os.path.exists(icon_path):
+                self.root.iconbitmap(icon_path)
+        except:
+            # Try PNG for Linux
+            try:
+                icon_path = get_resource_path('favicon.png')
+                if os.path.exists(icon_path):
+                    icon = tk.PhotoImage(file=icon_path)
+                    self.root.iconphoto(False, icon)
+            except:
+                pass  # Fallback: use default icon
+    
+    def setup_styles(self):
+        """
+        Configure visual styles for the GUI.
+        Uses ttk.Style() which is part of the standard library - safe and compatible.
+        """
+        style = ttk.Style()
+        
+        # Use a modern theme (clam is the most modern built-in theme)
+        style.theme_use('clam')
+        
+        # ============================================================
+        # COLOR PALETTE - Elegant and unified
+        # ============================================================
+        # Main background color (light gray) - unified for everything
+        bg_color = '#f5f5f5'
+        # Text color
+        text_color = '#333333'
+        # Border color (very subtle, almost invisible)
+        border_color = '#e0e0e0'  # Lighter, more subtle
+        # Elegant green for primary button (desaturated)
+        primary_green = '#5a8a5a'  # Desaturated green
+        primary_green_hover = '#4a7a4a'
+        primary_green_pressed = '#3a6a3a'
+        # Elegant blue for secondary button (desaturated)
+        secondary_blue = '#5a7a9a'  # Desaturated blue
+        secondary_blue_hover = '#4a6a8a'
+        secondary_blue_pressed = '#3a5a7a'
+        # Combobox border (dark blue, desaturated)
+        combo_border = '#5a6a7a'  # Dark blue-gray, desaturated
+        
+        # ============================================================
+        # 1. UNIFIED BACKGROUND COLORS - No white rectangles
+        # ============================================================
+        # Window background
+        self.root.configure(bg=bg_color)
+        
+        # Frame styles - ALL use same background for unity
+        style.configure('TFrame', background=bg_color)
+        style.configure('TLabelFrame', 
+                        background=bg_color,  # Same as main background
+                        foreground=text_color,
+                        borderwidth=1,
+                        relief='flat',  # Flat instead of solid - less prominent
+                        bordercolor=border_color)  # Very subtle border
+        style.configure('TLabel', 
+                        background=bg_color,  # Same as main background
+                        foreground=text_color)
+        
+        # ============================================================
+        # 2. COMBOBOX STYLES - Elegant and visible
+        # ============================================================
+        # Make comboboxes visible but elegant
+        style.configure('TCombobox',
+                        fieldbackground=bg_color,  # Match main background
+                        background=bg_color,
+                        borderwidth=1,
+                        relief='solid',
+                        padding=5)
+        
+        # Style the dropdown arrow button with desaturated dark blue
+        style.map('TCombobox',
+                  fieldbackground=[('readonly', bg_color)],
+                  background=[('readonly', '#e8e8e8')],
+                  bordercolor=[('readonly', combo_border)],
+                  arrowcolor=[('readonly', combo_border)],
+                  lightcolor=[('readonly', combo_border)],
+                  darkcolor=[('readonly', combo_border)])
+        
+        # Hover state
+        style.map('TCombobox',
+                  fieldbackground=[('readonly', bg_color)],
+                  background=[('readonly', '#d8d8d8')],
+                  arrowcolor=[('readonly', '#4a5a6a')])
+        
+        # ============================================================
+        # 3. BUTTON STYLES - Unified typography, elegant colors
+        # ============================================================
+        # Primary button style (for "Generate Word Cloud") - Elegant green
+        style.configure('Primary.TButton',
+                        background=primary_green,
+                        foreground='white',
+                        padding=10,
+                        font=('TkDefaultFont', 10),  # Same font as secondary
+                        borderwidth=0,
+                        focuscolor='none')
+        style.map('Primary.TButton',
+                  background=[('active', primary_green_hover),
+                            ('pressed', primary_green_pressed)],
+                  foreground=[('active', 'white'),
+                            ('pressed', 'white')])
+        
+        # Secondary button style (for "Save As...") - Elegant blue
+        style.configure('Secondary.TButton',
+                        background=secondary_blue,
+                        foreground='white',
+                        padding=10,  # Same padding as primary
+                        font=('TkDefaultFont', 10),  # Same font as primary
+                        borderwidth=0,
+                        focuscolor='none')
+        style.map('Secondary.TButton',
+                  background=[('active', secondary_blue_hover),
+                            ('pressed', secondary_blue_pressed)],
+                  foreground=[('active', 'white'),
+                            ('pressed', 'white')])
+        
+        # ============================================================
+        # 4. ENTRY FIELDS - Unified with frame background
+        # ============================================================
+        style.configure('TEntry',
+                        fieldbackground=bg_color,  # Match main background
+                        borderwidth=1,
+                        padding=3,
+                        bordercolor=border_color)
+        style.map('TEntry',
+                  fieldbackground=[('focus', bg_color)],
+                  bordercolor=[('focus', combo_border)])
+        
+        # ============================================================
+        # 5. CHECKBUTTONS AND OTHER WIDGETS - Unified background
+        # ============================================================
+        style.configure('TCheckbutton',
+                        background=bg_color,  # Match main background
+                        foreground=text_color,
+                        focuscolor='none')
+        style.configure('TSpinbox',
+                        fieldbackground=bg_color,  # Match main background
+                        background=bg_color,
+                        bordercolor=border_color)
     
     def setup_menu(self):
         """Configure menu bar with Help menu."""
@@ -480,16 +625,7 @@ class WordCloudGUI:
         ttk.Label(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
         ttk.Entry(export_frame, textvariable=self.stats_top_n, width=10).pack(side=tk.LEFT, padx=5)
         
-        # 5. Action Buttons
-        action_frame = ttk.Frame(scrollable_frame)
-        action_frame.pack(fill=tk.X, padx=5, pady=10)
-        
-        self.generate_button = ttk.Button(action_frame, text="Generate Word Cloud", command=self.on_generate, style="Accent.TButton")
-        self.generate_button.pack(side=tk.LEFT, padx=5)
-        
-        ttk.Button(action_frame, text="Save As...", command=self.on_select_output).pack(side=tk.LEFT, padx=5)
-        
-        # Status bar
+        # Status bar (at bottom of left column)
         status_frame = ttk.Frame(scrollable_frame)
         status_frame.pack(fill=tk.X, padx=5, pady=5)
         ttk.Label(status_frame, text="Status:").pack(side=tk.LEFT, padx=5)
@@ -499,8 +635,18 @@ class WordCloudGUI:
         preview_frame = ttk.LabelFrame(right_column, text="Preview", padding="10")
         preview_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
         
-        self.output_label = ttk.Label(preview_frame, textvariable=self.output_file, foreground="gray")
-        self.output_label.pack(anchor=tk.W, pady=5)
+        # Action Buttons moved to right column (preview area) for better visibility
+        action_frame = ttk.Frame(preview_frame)
+        action_frame.pack(fill=tk.X, pady=(0, 10))  # At top of preview area
+        
+        self.generate_button = ttk.Button(action_frame, text="Generate Word Cloud", command=self.on_generate, style="Primary.TButton")
+        self.generate_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        
+        self.save_button = ttk.Button(action_frame, text="Save As...", command=self.on_select_output, style="Secondary.TButton")
+        self.save_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
+        
+        self.output_label = ttk.Label(preview_frame, text="", foreground="gray", anchor=tk.CENTER)
+        self.output_label.pack(fill=tk.X, pady=5)
         
         # Preview image area
         preview_container = ttk.Frame(preview_frame)

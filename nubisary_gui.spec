@@ -37,6 +37,11 @@ help_files = [
 ]
 datas.extend(help_files)
 
+# Include favicon (for runtime icon changes if needed)
+favicon_path = os.path.join(spec_file_dir, 'favicon.ico')
+if os.path.exists(favicon_path):
+    datas.append(('favicon.ico', '.'))
+
 # Include preset masks from samples/masks/
 masks_path = os.path.join(spec_file_dir, 'samples', 'masks')
 if os.path.exists(masks_path):
@@ -187,6 +192,8 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # Can add icon file path here: 'path/to/icon.ico'
+    icon='favicon.ico',  # Application icon
+    version='version_info.txt',  # Windows version info (metadata)
+    manifest='app.manifest',  # Windows manifest (UAC, DPI awareness, compatibility)
 )
 

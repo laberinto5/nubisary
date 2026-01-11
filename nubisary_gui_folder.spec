@@ -34,6 +34,15 @@ help_files = [
 ]
 datas.extend(help_files)
 
+# Include favicon (for runtime icon changes if needed)
+favicon_path = os.path.join(spec_file_dir, 'favicon.ico')
+if os.path.exists(favicon_path):
+    datas.append(('favicon.ico', '.'))
+
+# Include favicon (for runtime icon changes if needed)
+if os.path.exists('favicon.ico'):
+    datas.append(('favicon.ico', '.'))
+
 # Include preset masks from samples/masks/
 # PyInstaller executes spec files with exec(), so __file__ is not available
 # Use current working directory as base path (where pyinstaller is run from)
@@ -170,7 +179,9 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon=None,  # Can add icon file path here: 'path/to/icon.ico'
+    icon='favicon.ico',  # Application icon  # Can add icon file path here: 'path/to/icon.ico'
+    version='version_info.txt',  # Windows version info (metadata)
+    manifest='app.manifest',  # Windows manifest (UAC, DPI awareness, compatibility)
 )
 
 # Collect all files into a folder
