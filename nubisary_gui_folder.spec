@@ -90,13 +90,32 @@ if os.path.exists(fonts_path):
         print(f"Including {len(font_files)} font files in bundle")
 
 # Include customtkinter assets (required for proper functionality)
+# CustomTkinter needs its assets directory to be included
 try:
     import customtkinter
     ctk_path = os.path.dirname(customtkinter.__file__)
+    
+    # Include assets directory
     ctk_assets = os.path.join(ctk_path, 'assets')
     if os.path.exists(ctk_assets):
         datas.append((ctk_assets, 'customtkinter/assets'))
-        print("Including customtkinter assets")
+        print(f"Including customtkinter assets from {ctk_assets}")
+    
+    # Include themes directory if it exists
+    ctk_themes = os.path.join(ctk_path, 'themes')
+    if os.path.exists(ctk_themes):
+        datas.append((ctk_themes, 'customtkinter/themes'))
+        print(f"Including customtkinter themes from {ctk_themes}")
+    
+    # Try collect_data_files as additional method
+    try:
+        customtkinter_datas = collect_data_files('customtkinter')
+        if customtkinter_datas:
+            datas.extend(customtkinter_datas)
+            print(f"Including {len(customtkinter_datas)} additional customtkinter data files")
+    except Exception:
+        pass  # collect_data_files may fail, but manual inclusion should work
+        
 except Exception as e:
     print(f"Warning: Could not include customtkinter assets: {e}")
 
@@ -107,30 +126,6 @@ customtkinter_hiddenimports = collect_submodules('customtkinter')
 hiddenimports = [
     # GUI related
     'customtkinter',  # Modern GUI framework
-    'customtkinter.windows',  # CustomTkinter windows module
-    'customtkinter.windows.widgets',  # CustomTkinter widgets
-    'customtkinter.windows.widgets.ctk_button',
-    'customtkinter.windows.widgets.ctk_label',
-    'customtkinter.windows.widgets.ctk_frame',
-    'customtkinter.windows.widgets.ctk_entry',
-    'customtkinter.windows.widgets.ctk_slider',
-    'customtkinter.windows.widgets.ctk_checkbox',
-    'customtkinter.windows.widgets.ctk_option_menu',
-    'customtkinter.windows.widgets.ctk_scrollbar',
-    'customtkinter.windows.widgets.ctk_image',
-    'customtkinter.windows.widgets.core_widget_classes',
-    'customtkinter.windows',  # CustomTkinter windows module
-    'customtkinter.windows.widgets',  # CustomTkinter widgets
-    'customtkinter.windows.widgets.ctk_button',
-    'customtkinter.windows.widgets.ctk_label',
-    'customtkinter.windows.widgets.ctk_frame',
-    'customtkinter.windows.widgets.ctk_entry',
-    'customtkinter.windows.widgets.ctk_slider',
-    'customtkinter.windows.widgets.ctk_checkbox',
-    'customtkinter.windows.widgets.ctk_option_menu',
-    'customtkinter.windows.widgets.ctk_scrollbar',
-    'customtkinter.windows.widgets.ctk_image',
-    'customtkinter.windows.widgets.core_widget_classes',
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',
