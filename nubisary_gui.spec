@@ -135,7 +135,6 @@ hiddenimports = [
     'customtkinter.windows.widgets.ctk_scrollbar',
     'customtkinter.windows.widgets.ctk_image',
     'customtkinter.windows.widgets.core_widget_classes',
-] + customtkinter_hiddenimports  # Add all collected submodules
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',
@@ -191,7 +190,7 @@ hiddenimports = [
     'src.logger',
     'gui',
     'gui.main',
-]
+] + customtkinter_hiddenimports  # Add all collected submodules
 
 a = Analysis(
     ['nubisary_gui.py'],
