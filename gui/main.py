@@ -60,16 +60,27 @@ class WordCloudGUI:
     def setup_window(self):
         """Configure main window properties."""
         self.root.title("Nubisary - Word Cloud Generator")
+        
+        # Set minimum window size to ensure all content is visible
+        self.root.minsize(1200, 700)
+        
         # Wider window for two-column layout (controls left, preview right)
         # Increased width to accommodate larger preview (650px minimum for preview column)
-        self.root.geometry("1500x850")
+        initial_width = 1500
+        initial_height = 850
+        
         # Center window on screen
-        self.root.update_idletasks()
-        width = self.root.winfo_width()
-        height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
-        y = (self.root.winfo_screenheight() // 2) - (height // 2)
-        self.root.geometry(f'{width}x{height}+{x}+{y}')
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width // 2) - (initial_width // 2)
+        y = (screen_height // 2) - (initial_height // 2)
+        
+        # Set geometry with position
+        self.root.geometry(f'{initial_width}x{initial_height}+{x}+{y}')
+        
+        # Ensure window is properly sized (update after widgets are created)
+        self.root.after(100, self._ensure_window_size)
+        
         # Clean up temporary files when window is closed
         self.root.protocol("WM_DELETE_WINDOW", self._on_closing)
         
@@ -1212,6 +1223,22 @@ class WordCloudGUI:
             print(f"DEBUG _update_preview error: {error_msg}")
             print(traceback.format_exc())
             self.preview_label.configure(image="", text=error_msg)
+    
+    def _ensure_window_size(self):
+        """Ensure window has proper size after widgets are created."""
+        # Force minimum size if window is too small
+        current_width = self.root.winfo_width()
+        current_height = self.root.winfo_height()
+        
+        if current_width < 1200 or current_height < 700:
+            # Window is too small, resize it
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            width = max(1200, min(1500, screen_width - 100))
+            height = max(700, min(850, screen_height - 100))
+            x = (screen_width // 2) - (width // 2)
+            y = (screen_height // 2) - (height // 2)
+            self.root.geometry(f'{width}x{height}+{x}+{y}')
     
     def _on_closing(self):
         """Handle window closing event - clean up temporary files."""
