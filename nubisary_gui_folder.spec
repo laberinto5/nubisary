@@ -82,6 +82,7 @@ if os.path.exists(fonts_path):
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
     # GUI related
+    'customtkinter',  # Modern GUI framework
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',
@@ -90,6 +91,8 @@ hiddenimports = [
     'tkinter.ttk',
     'tkinter.filedialog',
     'tkinter.messagebox',
+    'tkinter.colorchooser',
+    'tkcolorpicker',  # Enhanced color picker (optional, has fallback)
     
     # Core dependencies
     'wordcloud',

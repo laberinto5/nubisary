@@ -2,7 +2,8 @@
 """GUI entry point for Nubisary."""
 
 import sys
-import tkinter as tk
+import customtkinter as ctk
+import tkinter as tk  # Still needed for messagebox
 
 # Set matplotlib backend before any matplotlib imports
 # This must be done before importing any matplotlib modules
@@ -15,7 +16,7 @@ from gui.main import WordCloudGUI
 def main():
     """Main entry point for GUI application."""
     try:
-        root = tk.Tk()
+        root = ctk.CTk()
         app = WordCloudGUI(root)
         root.mainloop()
     except Exception as e:

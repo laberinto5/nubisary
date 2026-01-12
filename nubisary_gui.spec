@@ -90,6 +90,7 @@ if os.path.exists(fonts_path):
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
     # GUI related
+    'customtkinter',  # Modern GUI framework
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',

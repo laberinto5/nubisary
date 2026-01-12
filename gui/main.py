@@ -1,14 +1,26 @@
 """Main GUI window for Nubisary."""
 
-import tkinter as tk
-from tkinter import ttk, filedialog, messagebox, scrolledtext
+# Add parent directory to path if running directly (for development/testing)
+# This must be done BEFORE importing src modules
+import sys
 from pathlib import Path
+if __name__ == '__main__':
+    parent_dir = Path(__file__).parent.parent
+    if str(parent_dir) not in sys.path:
+        sys.path.insert(0, str(parent_dir))
+
+import customtkinter as ctk
+import tkinter as tk  # Still needed for filedialog, messagebox, Menu, Canvas, Spinbox
+from tkinter import filedialog, messagebox, scrolledtext, ttk  # ttk needed for Spinbox
 from PIL import Image, ImageTk
 import threading
 import json
 import locale
 import os
-import sys
+
+# Set appearance mode and color theme
+ctk.set_appearance_mode("dark")  # User prefers dark theme
+ctk.set_default_color_theme("blue")  # Default theme
 
 try:
     from tkcolorpicker import askcolor as color_picker
@@ -79,136 +91,19 @@ class WordCloudGUI:
     def setup_styles(self):
         """
         Configure visual styles for the GUI.
-        Uses ttk.Style() which is part of the standard library - safe and compatible.
+        CustomTkinter handles styling automatically, but we define custom colors for primary buttons.
         """
-        style = ttk.Style()
-        
-        # Use a modern theme (clam is the most modern built-in theme)
-        style.theme_use('clam')
-        
-        # ============================================================
-        # COLOR PALETTE - Elegant and unified
-        # ============================================================
-        # Main background color (light gray) - unified for everything
-        bg_color = '#f5f5f5'
-        # Text color
-        text_color = '#333333'
-        # Border color (very subtle, almost invisible)
-        border_color = '#e0e0e0'  # Lighter, more subtle
-        # Elegant green for primary button (desaturated)
-        primary_green = '#5a8a5a'  # Desaturated green
-        primary_green_hover = '#4a7a4a'
-        primary_green_pressed = '#3a6a3a'
-        # Elegant blue for secondary button (desaturated)
-        secondary_blue = '#5a7a9a'  # Desaturated blue
-        secondary_blue_hover = '#4a6a8a'
-        secondary_blue_pressed = '#3a5a7a'
-        # Combobox border (dark blue, desaturated)
-        combo_border = '#5a6a7a'  # Dark blue-gray, desaturated
-        
-        # ============================================================
-        # 1. UNIFIED BACKGROUND COLORS - No white rectangles
-        # ============================================================
-        # Window background
-        self.root.configure(bg=bg_color)
-        
-        # Frame styles - ALL use same background for unity
-        style.configure('TFrame', background=bg_color)
-        style.configure('TLabelFrame', 
-                        background=bg_color,  # Same as main background
-                        foreground=text_color,
-                        borderwidth=1,
-                        relief='flat',  # Flat instead of solid - less prominent
-                        bordercolor=border_color)  # Very subtle border
-        style.configure('TLabel', 
-                        background=bg_color,  # Same as main background
-                        foreground=text_color)
-        
-        # ============================================================
-        # 2. COMBOBOX STYLES - Elegant and visible
-        # ============================================================
-        # Make comboboxes visible but elegant
-        style.configure('TCombobox',
-                        fieldbackground=bg_color,  # Match main background
-                        background=bg_color,
-                        borderwidth=1,
-                        relief='solid',
-                        padding=5)
-        
-        # Style the dropdown arrow button with desaturated dark blue
-        style.map('TCombobox',
-                  fieldbackground=[('readonly', bg_color)],
-                  background=[('readonly', '#e8e8e8')],
-                  bordercolor=[('readonly', combo_border)],
-                  arrowcolor=[('readonly', combo_border)],
-                  lightcolor=[('readonly', combo_border)],
-                  darkcolor=[('readonly', combo_border)])
-        
-        # Hover state
-        style.map('TCombobox',
-                  fieldbackground=[('readonly', bg_color)],
-                  background=[('readonly', '#d8d8d8')],
-                  arrowcolor=[('readonly', '#4a5a6a')])
-        
-        # ============================================================
-        # 3. BUTTON STYLES - Unified typography, elegant colors
-        # ============================================================
-        # Primary button style (for "Generate Word Cloud") - Elegant green
-        style.configure('Primary.TButton',
-                        background=primary_green,
-                        foreground='white',
-                        padding=10,
-                        font=('TkDefaultFont', 10),  # Same font as secondary
-                        borderwidth=0,
-                        focuscolor='none')
-        style.map('Primary.TButton',
-                  background=[('active', primary_green_hover),
-                            ('pressed', primary_green_pressed)],
-                  foreground=[('active', 'white'),
-                            ('pressed', 'white')])
-        
-        # Secondary button style (for "Save As...") - Elegant blue
-        style.configure('Secondary.TButton',
-                        background=secondary_blue,
-                        foreground='white',
-                        padding=10,  # Same padding as primary
-                        font=('TkDefaultFont', 10),  # Same font as primary
-                        borderwidth=0,
-                        focuscolor='none')
-        style.map('Secondary.TButton',
-                  background=[('active', secondary_blue_hover),
-                            ('pressed', secondary_blue_pressed)],
-                  foreground=[('active', 'white'),
-                            ('pressed', 'white')])
-        
-        # ============================================================
-        # 4. ENTRY FIELDS - Unified with frame background
-        # ============================================================
-        style.configure('TEntry',
-                        fieldbackground=bg_color,  # Match main background
-                        borderwidth=1,
-                        padding=3,
-                        bordercolor=border_color)
-        style.map('TEntry',
-                  fieldbackground=[('focus', bg_color)],
-                  bordercolor=[('focus', combo_border)])
-        
-        # ============================================================
-        # 5. CHECKBUTTONS AND OTHER WIDGETS - Unified background
-        # ============================================================
-        style.configure('TCheckbutton',
-                        background=bg_color,  # Match main background
-                        foreground=text_color,
-                        focuscolor='none')
-        style.configure('TSpinbox',
-                        fieldbackground=bg_color,  # Match main background
-                        background=bg_color,
-                        bordercolor=border_color)
+        # CustomTkinter uses global theme settings (configured in imports)
+        # Store custom button colors for later use
+        self.primary_green = '#5a8a5a'  # Desaturated green
+        self.primary_green_hover = '#4a7a4a'
+        self.secondary_blue = '#5a7a9a'  # Desaturated blue
+        self.secondary_blue_hover = '#4a6a8a'
     
     def setup_menu(self):
         """Configure menu bar with Help menu."""
         menubar = tk.Menu(self.root)
-        self.root.config(menu=menubar)
+        self.root.configure(menu=menubar)
         
         # Help menu
         help_menu = tk.Menu(menubar, tearoff=0)
@@ -267,14 +162,14 @@ class WordCloudGUI:
         help_window.geometry(f'{width}x{height}+{x}+{y}')
         
         # Main frame with padding
-        main_frame = ttk.Frame(help_window, padding="10")
+        main_frame = ctk.CTkFrame(help_window)
         main_frame.pack(fill=tk.BOTH, expand=True)
         
         # Text widget with scrollbar
-        text_frame = ttk.Frame(main_frame)
+        text_frame = ctk.CTkFrame(main_frame)
         text_frame.pack(fill=tk.BOTH, expand=True)
         
-        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar = ctk.CTkScrollbar(text_frame)
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         help_text = scrolledtext.ScrolledText(
@@ -286,7 +181,7 @@ class WordCloudGUI:
             pady=10
         )
         help_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.config(command=help_text.yview)
+        scrollbar.configure(command=help_text.yview)
         
         # Load help content
         try:
@@ -311,10 +206,10 @@ class WordCloudGUI:
                 error_msg += "Please consult the documentation in the 'documentation/' directory."
             help_text.insert('1.0', error_msg)
         
-        help_text.config(state=tk.DISABLED)  # Make read-only
+        help_text.configure(state=tk.DISABLED)  # Make read-only
         
         # Close button
-        button_frame = ttk.Frame(main_frame)
+        button_frame = ctk.CTkFrame(main_frame)
         button_frame.pack(fill=tk.X, pady=(10, 0))
         
         if language == 'es':
@@ -322,7 +217,7 @@ class WordCloudGUI:
         else:
             close_text = "Close"
         
-        ttk.Button(button_frame, text=close_text, command=help_window.destroy).pack()
+        ctk.CTkButton(button_frame, text=close_text, command=help_window.destroy).pack()
     
     def show_about(self):
         """Show about dialog."""
@@ -388,17 +283,17 @@ class WordCloudGUI:
     def create_widgets(self):
         """Create and layout all GUI widgets in a two-column layout."""
         # Main container
-        main_frame = ttk.Frame(self.root, padding="10")
-        main_frame.pack(fill=tk.BOTH, expand=True)
+        main_frame = ctk.CTkFrame(self.root)
+        main_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Left column: Controls (scrollable)
-        left_column = ttk.Frame(main_frame)
-        left_column.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 5))
+        left_column = ctk.CTkFrame(main_frame)
+        left_column.pack(side="left", fill="both", expand=True, padx=(0, 5))
         
         # Create scrollable canvas for left column
-        canvas = tk.Canvas(left_column)
-        scrollbar = ttk.Scrollbar(left_column, orient="vertical", command=canvas.yview)
-        scrollable_frame = ttk.Frame(canvas)
+        canvas = tk.Canvas(left_column, bg="#212325")  # Dark theme background
+        scrollbar = ctk.CTkScrollbar(left_column, orientation="vertical", command=canvas.yview)
+        scrollable_frame = ctk.CTkFrame(canvas)
         
         def update_scroll_region(event=None):
             """Update scroll region when content changes."""
@@ -432,101 +327,106 @@ class WordCloudGUI:
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
         
         # Right column: Preview (fixed, no scroll) - Larger preview area
-        right_column = ttk.Frame(main_frame)
+        right_column = ctk.CTkFrame(main_frame)
         # Set minimum width for preview column (larger preview area)
         # This ensures the preview column is at least 650px wide
-        right_column.config(width=650)
-        right_column.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True, padx=(5, 0))
+        right_column.configure(width=650)
+        right_column.pack(side="right", fill="both", expand=True, padx=(5, 0))
         # Store reference for later use
         self.right_column = right_column
         
         # 1. Input Section
-        input_frame = ttk.LabelFrame(scrollable_frame, text="Input File", padding="10")
-        input_frame.pack(fill=tk.X, padx=5, pady=5)
+        input_frame = ctk.CTkFrame(scrollable_frame)
+        input_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        ctk.CTkLabel(input_frame, text="Input File", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         
         # File selection row
-        file_select_frame = ttk.Frame(input_frame)
+        file_select_frame = ctk.CTkFrame(input_frame)
         file_select_frame.pack(fill=tk.X, pady=(0, 10))
-        ttk.Button(file_select_frame, text="Select Input File", command=self.on_select_file).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(file_select_frame, text="Select Input File", command=self.on_select_file).pack(side=tk.LEFT, padx=5)
         # Reduce width to prevent hiding language selector
-        file_label = ttk.Label(file_select_frame, textvariable=self.input_file, width=40)
+        file_label = ctk.CTkLabel(file_select_frame, text="", width=40)
         file_label.pack(side=tk.LEFT, padx=5)
-        self.file_type_label = ttk.Label(file_select_frame, text="", foreground="gray")
+        self.file_label = file_label  # Store reference to update text
+        self.file_type_label = ctk.CTkLabel(file_select_frame, text="", text_color="gray")
         self.file_type_label.pack(side=tk.LEFT, padx=5)
         
         # Language selector row (always visible, below file selection with clear separation)
-        lang_frame = ttk.Frame(input_frame)
+        lang_frame = ctk.CTkFrame(input_frame)
         lang_frame.pack(fill=tk.X, pady=(5, 0))
-        ttk.Label(lang_frame, text="Language:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
-        self.language_combo = ttk.Combobox(lang_frame, textvariable=self.language, values=LANGUAGES_FOR_NLTK, state="readonly", width=30)
+        ctk.CTkLabel(lang_frame, text="Language:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        self.language_combo = ctk.CTkOptionMenu(lang_frame, variable=self.language, values=LANGUAGES_FOR_NLTK, width=140)
         self.language_combo.pack(side=tk.LEFT, padx=5)
         
         # 2. Processing Options Section
-        proc_frame = ttk.LabelFrame(scrollable_frame, text="Processing Options", padding="10")
-        proc_frame.pack(fill=tk.X, padx=5, pady=5)
+        proc_frame = ctk.CTkFrame(scrollable_frame)
+        proc_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        ctk.CTkLabel(proc_frame, text="Processing Options", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         
         # Checkboxes row 1
-        cb_frame1 = ttk.Frame(proc_frame)
+        cb_frame1 = ctk.CTkFrame(proc_frame)
         cb_frame1.pack(fill=tk.X, pady=2)
-        ttk.Checkbutton(cb_frame1, text="Include stopwords", variable=self.include_stopwords).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(cb_frame1, text="Case sensitive", variable=self.case_sensitive).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(cb_frame1, text="Collocations", variable=self.collocations).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame1, text="Include stopwords", variable=self.include_stopwords).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame1, text="Case sensitive", variable=self.case_sensitive).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame1, text="Collocations", variable=self.collocations).pack(side=tk.LEFT, padx=5)
         
         # Checkboxes row 2
-        cb_frame2 = ttk.Frame(proc_frame)
+        cb_frame2 = ctk.CTkFrame(proc_frame)
         cb_frame2.pack(fill=tk.X, pady=2)
-        ttk.Checkbutton(cb_frame2, text="Normalize plurals", variable=self.normalize_plurals).pack(side=tk.LEFT, padx=5)
-        ttk.Checkbutton(cb_frame2, text="Include numbers", variable=self.include_numbers).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame2, text="Normalize plurals", variable=self.normalize_plurals).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame2, text="Include numbers", variable=self.include_numbers).pack(side=tk.LEFT, padx=5)
         
         # Numeric inputs
-        num_frame = ttk.Frame(proc_frame)
+        num_frame = ctk.CTkFrame(proc_frame)
         num_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(num_frame, text="Min word length:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(num_frame, text="Min word length:").pack(side=tk.LEFT, padx=5)
         ttk.Spinbox(num_frame, from_=0, to=20, textvariable=self.min_word_length, width=10).pack(side=tk.LEFT, padx=5)
-        ttk.Label(num_frame, text="Max words:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(num_frame, text="Max words:").pack(side=tk.LEFT, padx=5)
         ttk.Spinbox(num_frame, from_=1, to=1000, textvariable=self.max_words, width=10).pack(side=tk.LEFT, padx=5)
         
         # 3. Visual Customization Section
-        vis_frame = ttk.LabelFrame(scrollable_frame, text="Visual Customization", padding="10")
+        vis_frame = ctk.CTkFrame(scrollable_frame)
+        vis_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        ctk.CTkLabel(vis_frame, text="Visual Customization", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         vis_frame.pack(fill=tk.X, padx=5, pady=5)
         
         # Theme selector
-        theme_frame = ttk.Frame(vis_frame)
+        theme_frame = ctk.CTkFrame(vis_frame)
         theme_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(theme_frame, text="Theme:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(theme_frame, text="Theme:").pack(side=tk.LEFT, padx=5)
         theme_names = get_theme_names()
-        self.theme_combo = ttk.Combobox(theme_frame, textvariable=self.theme, values=theme_names, state="readonly", width=30)
+        self.theme_combo = ctk.CTkOptionMenu(theme_frame, variable=self.theme, values=theme_names, width=140)
         self.theme_combo.pack(side=tk.LEFT, padx=5)
         
         # Canvas size
-        size_frame = ttk.Frame(vis_frame)
+        size_frame = ctk.CTkFrame(vis_frame)
         size_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(size_frame, text="Canvas size:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(size_frame, text="Canvas size:").pack(side=tk.LEFT, padx=5)
         ttk.Spinbox(size_frame, from_=100, to=4000, textvariable=self.canvas_width, width=10).pack(side=tk.LEFT, padx=5)
-        ttk.Label(size_frame, text="x").pack(side=tk.LEFT)
+        ctk.CTkLabel(size_frame, text="x").pack(side=tk.LEFT)
         ttk.Spinbox(size_frame, from_=100, to=4000, textvariable=self.canvas_height, width=10).pack(side=tk.LEFT, padx=5)
         
         # Sliders
-        scale_frame = ttk.Frame(vis_frame)
+        scale_frame = ctk.CTkFrame(vis_frame)
         scale_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(scale_frame, text="Relative scaling:").pack(side=tk.LEFT, padx=5)
-        scale_slider = ttk.Scale(scale_frame, from_=0.0, to=1.0, variable=self.relative_scaling, orient=tk.HORIZONTAL, length=200)
+        ctk.CTkLabel(scale_frame, text="Relative scaling:").pack(side=tk.LEFT, padx=5)
+        scale_slider = ctk.CTkSlider(scale_frame, from_=0.0, to=1.0, variable=self.relative_scaling, width=200)
         scale_slider.pack(side=tk.LEFT, padx=5)
-        scale_label = ttk.Label(scale_frame, textvariable=self.relative_scaling, width=5)
+        scale_label = ctk.CTkLabel(scale_frame, text="0.50", width=5)
         scale_label.pack(side=tk.LEFT, padx=5)
-        self.relative_scaling.trace_add("write", lambda *args: scale_label.config(text=f"{self.relative_scaling.get():.2f}"))
+        self.relative_scaling.trace_add("write", lambda *args: scale_label.configure(text=f"{self.relative_scaling.get():.2f}"))
         
-        horiz_frame = ttk.Frame(vis_frame)
+        horiz_frame = ctk.CTkFrame(vis_frame)
         horiz_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(horiz_frame, text="Prefer horizontal:").pack(side=tk.LEFT, padx=5)
-        horiz_slider = ttk.Scale(horiz_frame, from_=0.0, to=1.0, variable=self.prefer_horizontal, orient=tk.HORIZONTAL, length=200)
+        ctk.CTkLabel(horiz_frame, text="Prefer horizontal:").pack(side=tk.LEFT, padx=5)
+        horiz_slider = ctk.CTkSlider(horiz_frame, from_=0.0, to=1.0, variable=self.prefer_horizontal, width=200)
         horiz_slider.pack(side=tk.LEFT, padx=5)
-        horiz_label = ttk.Label(horiz_frame, textvariable=self.prefer_horizontal, width=5)
+        horiz_label = ctk.CTkLabel(horiz_frame, text="0.90", width=5)
         horiz_label.pack(side=tk.LEFT, padx=5)
-        self.prefer_horizontal.trace_add("write", lambda *args: horiz_label.config(text=f"{self.prefer_horizontal.get():.2f}"))
+        self.prefer_horizontal.trace_add("write", lambda *args: horiz_label.configure(text=f"{self.prefer_horizontal.get():.2f}"))
         
         # Custom Theme Creator Section (expandable)
-        self.custom_theme_checkbox = ttk.Checkbutton(
+        self.custom_theme_checkbox = ctk.CTkCheckBox(
             vis_frame, 
             text="Create Custom Theme", 
             variable=self.use_custom_theme_creator,
@@ -535,138 +435,143 @@ class WordCloudGUI:
         self.custom_theme_checkbox.pack(fill=tk.X, pady=5)
         
         # Custom theme creator panel (initially hidden)
-        self.custom_theme_panel = ttk.LabelFrame(vis_frame, text="Custom Theme Creator", padding="10")
+        self.custom_theme_panel = ctk.CTkFrame(vis_frame)
+        ctk.CTkLabel(self.custom_theme_panel, text="Custom Theme Creator", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         self._create_custom_theme_panel()
         # Panel is created but not packed initially (hidden by default)
         # _toggle_custom_theme_panel will show/hide it based on checkbox state
         
         # 4. Advanced Options (Collapsible)
-        self.advanced_frame = ttk.LabelFrame(scrollable_frame, text="Advanced Options", padding="10")
-        self.advanced_frame.pack(fill=tk.X, padx=5, pady=5)
+        self.advanced_frame = ctk.CTkFrame(scrollable_frame)
+        self.advanced_frame.pack(fill=tk.X, padx=5, pady=(5, 0))
+        ctk.CTkLabel(self.advanced_frame, text="Advanced Options", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         
         # Note: Custom colors are now handled by Custom Theme Creator in Visual Customization section
         
         # Mask selection (preset masks + custom file)
-        mask_label_frame = ttk.Frame(self.advanced_frame)
+        mask_label_frame = ctk.CTkFrame(self.advanced_frame)
         mask_label_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(mask_label_frame, text="Mask:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(mask_label_frame, text="Mask:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
         
         # Preset masks dropdown
-        preset_mask_frame = ttk.Frame(self.advanced_frame)
+        preset_mask_frame = ctk.CTkFrame(self.advanced_frame)
         preset_mask_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(preset_mask_frame, text="Preset mask:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(preset_mask_frame, text="Preset mask:").pack(side=tk.LEFT, padx=5)
         
         # Get available preset masks (without .png extension for display)
         preset_masks = list_mask_files(without_extension=True)
         preset_mask_values = ["None"] + preset_masks + ["Custom..."]
         
-        self.preset_mask_combo = ttk.Combobox(
+        self.preset_mask_combo = ctk.CTkOptionMenu(
             preset_mask_frame, 
-            textvariable=self.preset_mask, 
+            variable=self.preset_mask, 
             values=preset_mask_values, 
-            state="readonly", 
-            width=30,
-            postcommand=self._update_preset_mask_list  # Refresh list on dropdown
-        )
+            
+            width=140)
         self.preset_mask_combo.pack(side=tk.LEFT, padx=5)
         self.preset_mask_combo.set("None")
-        self.preset_mask_combo.bind("<<ComboboxSelected>>", self._on_preset_mask_selected)
+        self.preset_mask_combo.configure(command=self._on_preset_mask_selected)
         
         # Custom mask file selection
-        mask_custom_frame = ttk.Frame(self.advanced_frame)
+        mask_custom_frame = ctk.CTkFrame(self.advanced_frame)
         mask_custom_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(mask_custom_frame, text="Select Custom Mask Image", command=self.on_select_mask).pack(side=tk.LEFT, padx=5)
-        ttk.Label(mask_custom_frame, textvariable=self.mask_file, width=40, foreground="gray").pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(mask_custom_frame, text="Select Custom Mask Image", command=self.on_select_mask).pack(side=tk.LEFT, padx=5)
+        mask_file_label = ctk.CTkLabel(mask_custom_frame, text="", width=40, text_color="gray")
+        mask_file_label.pack(side=tk.LEFT, padx=5)
+        self.mask_file_label = mask_file_label  # Store reference
         
         # Contour options (if mask selected)
-        contour_frame = ttk.Frame(self.advanced_frame)
+        contour_frame = ctk.CTkFrame(self.advanced_frame)
         contour_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(contour_frame, text="Contour width:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(contour_frame, text="Contour width:").pack(side=tk.LEFT, padx=5)
         ttk.Spinbox(contour_frame, from_=0.0, to=10.0, textvariable=self.contour_width, width=10, increment=0.5).pack(side=tk.LEFT, padx=5)
-        ttk.Label(contour_frame, text="Contour color:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(contour_frame, textvariable=self.contour_color, width=15).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(contour_frame, text="Contour color:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(contour_frame, textvariable=self.contour_color, width=15).pack(side=tk.LEFT, padx=5)
         
         # Font selection (preset fonts + custom file)
-        font_label_frame = ttk.Frame(self.advanced_frame)
+        font_label_frame = ctk.CTkFrame(self.advanced_frame)
         font_label_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(font_label_frame, text="Font:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(font_label_frame, text="Font:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
         
         # Preset fonts dropdown
-        preset_font_frame = ttk.Frame(self.advanced_frame)
+        preset_font_frame = ctk.CTkFrame(self.advanced_frame)
         preset_font_frame.pack(fill=tk.X, pady=2)
-        ttk.Label(preset_font_frame, text="Preset font:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(preset_font_frame, text="Preset font:").pack(side=tk.LEFT, padx=5)
         
         # Get available preset fonts (with friendly display names)
         preset_fonts = list_font_files(without_extension=True, with_display_names=True)
         preset_font_values = ["Default"] + preset_fonts + ["Custom..."]
         
-        self.preset_font_combo = ttk.Combobox(
+        self.preset_font_combo = ctk.CTkOptionMenu(
             preset_font_frame, 
-            textvariable=self.preset_font, 
+            variable=self.preset_font, 
             values=preset_font_values, 
-            state="readonly", 
-            width=30,
-            postcommand=self._update_preset_font_list  # Refresh list on dropdown
-        )
+            
+            width=140)
         self.preset_font_combo.pack(side=tk.LEFT, padx=5)
         self.preset_font_combo.set("Default")
-        self.preset_font_combo.bind("<<ComboboxSelected>>", self._on_preset_font_selected)
+        self.preset_font_combo.configure(command=self._on_preset_font_selected)
         
         # Custom font file selection
-        font_custom_frame = ttk.Frame(self.advanced_frame)
+        font_custom_frame = ctk.CTkFrame(self.advanced_frame)
         font_custom_frame.pack(fill=tk.X, pady=2)
-        ttk.Button(font_custom_frame, text="Select Custom Font", command=self.on_select_font).pack(side=tk.LEFT, padx=5)
-        ttk.Label(font_custom_frame, textvariable=self.font_path, width=40, foreground="gray").pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(font_custom_frame, text="Select Custom Font", command=self.on_select_font).pack(side=tk.LEFT, padx=5)
+        font_path_label = ctk.CTkLabel(font_custom_frame, text="", width=40, text_color="gray")
+        font_path_label.pack(side=tk.LEFT, padx=5)
+        self.font_path_label = font_path_label  # Store reference
         
         # Export statistics
-        export_frame = ttk.Frame(self.advanced_frame)
+        export_frame = ctk.CTkFrame(self.advanced_frame)
         export_frame.pack(fill=tk.X, pady=5)
-        ttk.Checkbutton(export_frame, text="Export statistics (JSON/CSV)", variable=self.export_stats).pack(side=tk.LEFT, padx=5)
-        ttk.Label(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(export_frame, textvariable=self.stats_top_n, width=10).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(export_frame, text="Export statistics (JSON/CSV)", variable=self.export_stats).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(export_frame, textvariable=self.stats_top_n, width=10).pack(side=tk.LEFT, padx=5)
         
         # Status bar (at bottom of left column)
-        status_frame = ttk.Frame(scrollable_frame)
+        status_frame = ctk.CTkFrame(scrollable_frame)
         status_frame.pack(fill=tk.X, padx=5, pady=5)
-        ttk.Label(status_frame, text="Status:").pack(side=tk.LEFT, padx=5)
-        ttk.Label(status_frame, textvariable=self.status_text, foreground="blue").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(status_frame, text="Status:").pack(side=tk.LEFT, padx=5)
+        status_label = ctk.CTkLabel(status_frame, text="Ready", text_color="blue")
+        status_label.pack(side=tk.LEFT, padx=5)
+        self.status_label = status_label  # Store reference
         
         # Right column: Preview Section (always visible, no scroll)
-        preview_frame = ttk.LabelFrame(right_column, text="Preview", padding="10")
+        preview_frame = ctk.CTkFrame(right_column)
         preview_frame.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
+        ctk.CTkLabel(preview_frame, text="Preview", font=("TkDefaultFont", 10, "bold")).pack(padx=10, pady=(10, 5))
         
         # Action Buttons moved to right column (preview area) for better visibility
-        action_frame = ttk.Frame(preview_frame)
+        action_frame = ctk.CTkFrame(preview_frame)
         action_frame.pack(fill=tk.X, pady=(0, 10))  # At top of preview area
         
-        self.generate_button = ttk.Button(action_frame, text="Generate Word Cloud", command=self.on_generate, style="Primary.TButton")
+        self.generate_button = ctk.CTkButton(action_frame, text="Generate Word Cloud", command=self.on_generate, fg_color=self.primary_green, hover_color=self.primary_green_hover)
         self.generate_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        self.save_button = ttk.Button(action_frame, text="Save As...", command=self.on_select_output, style="Secondary.TButton")
+        self.save_button = ctk.CTkButton(action_frame, text="Save As...", command=self.on_select_output, fg_color=self.secondary_blue, hover_color=self.secondary_blue_hover)
         self.save_button.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         
-        self.output_label = ttk.Label(preview_frame, text="", foreground="gray", anchor=tk.CENTER)
+        self.output_label = ctk.CTkLabel(preview_frame, text="", text_color="gray")
         self.output_label.pack(fill=tk.X, pady=5)
         
         # Preview image area
-        preview_container = ttk.Frame(preview_frame)
+        preview_container = ctk.CTkFrame(preview_frame)
         preview_container.pack(fill=tk.BOTH, expand=True)
         
-        self.preview_label = ttk.Label(preview_container, text="No preview available", anchor=tk.CENTER)
+        self.preview_label = ctk.CTkLabel(preview_container, text="No preview available")
         self.preview_label.pack(fill=tk.BOTH, expand=True)
     
     def _create_custom_theme_panel(self):
         """Create the custom theme creator panel with color selectors."""
         # Theme name entry
-        name_frame = ttk.Frame(self.custom_theme_panel)
+        name_frame = ctk.CTkFrame(self.custom_theme_panel)
         name_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(name_frame, text="Theme name:").pack(side=tk.LEFT, padx=5)
-        ttk.Entry(name_frame, textvariable=self.custom_theme_name, width=30).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(name_frame, text="Theme name:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(name_frame, textvariable=self.custom_theme_name, width=140).pack(side=tk.LEFT, padx=5)
         
         # Background color selector
-        bg_frame = ttk.Frame(self.custom_theme_panel)
+        bg_frame = ctk.CTkFrame(self.custom_theme_panel)
         bg_frame.pack(fill=tk.X, pady=5)
-        ttk.Label(bg_frame, text="Background Color:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(bg_frame, text="Background Color:").pack(side=tk.LEFT, padx=5)
         
         # Color preview button and hex entry
         self.bg_color_button = tk.Button(
@@ -677,19 +582,19 @@ class WordCloudGUI:
             command=lambda: self._open_color_picker(self.custom_theme_background, "Background")
         )
         self.bg_color_button.pack(side=tk.LEFT, padx=5)
-        bg_entry = ttk.Entry(bg_frame, textvariable=self.custom_theme_background, width=10)
+        bg_entry = ctk.CTkEntry(bg_frame, textvariable=self.custom_theme_background, width=10)
         bg_entry.pack(side=tk.LEFT, padx=5)
         self.custom_theme_background.trace_add("write", lambda *args: self._update_color_button(self.bg_color_button, self.custom_theme_background.get()))
         
         # Colormap colors (5 colors)
-        colormap_label = ttk.Label(self.custom_theme_panel, text="Colormap Colors (5 colors):", font=("TkDefaultFont", 9, "bold"))
-        colormap_label.pack(anchor=tk.W, pady=(10, 5), padx=5)
+        colormap_label = ctk.CTkLabel(self.custom_theme_panel, text="Colormap Colors (5 colors):", font=("TkDefaultFont", 9, "bold"))
+        colormap_label.pack(pady=(10, 5), padx=5)
         
         self.colormap_buttons = []
         for i, color_var in enumerate(self.custom_theme_colormap_colors, 1):
-            color_row = ttk.Frame(self.custom_theme_panel)
+            color_row = ctk.CTkFrame(self.custom_theme_panel)
             color_row.pack(fill=tk.X, pady=2, padx=5)
-            ttk.Label(color_row, text=f"Color {i}:").pack(side=tk.LEFT, padx=5)
+            ctk.CTkLabel(color_row, text=f"Color {i}:").pack(side=tk.LEFT, padx=5)
             
             color_btn = tk.Button(
                 color_row,
@@ -701,28 +606,28 @@ class WordCloudGUI:
             color_btn.pack(side=tk.LEFT, padx=5)
             self.colormap_buttons.append(color_btn)
             
-            color_entry = ttk.Entry(color_row, textvariable=color_var, width=10)
+            color_entry = ctk.CTkEntry(color_row, textvariable=color_var, width=10)
             color_entry.pack(side=tk.LEFT, padx=5)
             
             # Update button color when entry changes
             color_var.trace_add("write", lambda *args, btn=color_btn, var=color_var: self._update_color_button(btn, var.get()))
         
         # Action buttons (Save/Load)
-        action_frame = ttk.Frame(self.custom_theme_panel)
+        action_frame = ctk.CTkFrame(self.custom_theme_panel)
         action_frame.pack(fill=tk.X, pady=(10, 5))
-        ttk.Button(action_frame, text="Save Theme as JSON...", command=self._save_custom_theme).pack(side=tk.LEFT, padx=5)
-        ttk.Button(action_frame, text="Load Theme from JSON...", command=self._load_custom_theme).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(action_frame, text="Save Theme as JSON...", command=self._save_custom_theme).pack(side=tk.LEFT, padx=5)
+        ctk.CTkButton(action_frame, text="Load Theme from JSON...", command=self._load_custom_theme).pack(side=tk.LEFT, padx=5)
     
     def _toggle_custom_theme_panel(self):
         """Show or hide the custom theme creator panel based on checkbox state."""
         if self.use_custom_theme_creator.get():
             self.custom_theme_panel.pack(fill=tk.X, padx=5, pady=5)
             # Disable theme selector when using custom theme creator
-            self.theme_combo.config(state="disabled")
+            self.theme_combo.configure(state="disabled")
         else:
             self.custom_theme_panel.pack_forget()
             # Re-enable theme selector
-            self.theme_combo.config(state="readonly")
+            self.theme_combo.configure(state="normal")
     
     def _open_color_picker(self, color_var: tk.StringVar, color_name: str):
         """Open color picker dialog and update color variable using tkcolorpicker2."""
@@ -753,7 +658,7 @@ class WordCloudGUI:
     def _update_color_button(self, button: tk.Button, color_hex: str):
         """Update button background color based on hex value."""
         try:
-            button.config(bg=color_hex)
+            button.configure(bg=color_hex)
         except tk.TclError:
             # Invalid color, keep current
             pass
@@ -895,10 +800,12 @@ class WordCloudGUI:
         
         if filename:
             self.input_file.set(filename)
+            # Update label text
+            self.file_label.configure(text=filename)
             self._update_file_type_label()
             # Clear output file (user will save after generating and previewing)
             self.output_file.set("")
-            self.output_label.config(text="No word cloud generated yet", foreground="gray")
+            self.output_label.configure(text="No word cloud generated yet", text_color="gray")
             # Clear any previously generated word cloud
             self.generated_wordcloud = None
             if self.temp_output_file and Path(self.temp_output_file).exists():
@@ -912,18 +819,18 @@ class WordCloudGUI:
         """Update file type label based on selected file."""
         file_path = self.input_file.get()
         if not file_path:
-            self.file_type_label.config(text="")
+            self.file_type_label.configure(text="")
             return
         
         if is_json_file(file_path):
-            self.file_type_label.config(text="[JSON]", foreground="blue")
-            self.language_combo.config(state="disabled")
+            self.file_type_label.configure(text="[JSON]", text_color="blue")
+            self.language_combo.configure(state="disabled")
         elif is_convertible_document(file_path):
-            self.file_type_label.config(text="[PDF/DOCX]", foreground="green")
-            self.language_combo.config(state="readonly")
+            self.file_type_label.configure(text="[PDF/DOCX]", text_color="green")
+            self.language_combo.configure(state="normal")
         else:
-            self.file_type_label.config(text="[TEXT]", foreground="black")
-            self.language_combo.config(state="readonly")
+            self.file_type_label.configure(text="[TEXT]", text_color="black")
+            self.language_combo.configure(state="normal")
     
     def on_select_output(self):
         """Handle saving the generated word cloud using Save As dialog."""
@@ -955,8 +862,9 @@ class WordCloudGUI:
                 # Save the generated word cloud to the selected location
                 self.generated_wordcloud.to_file(filename)
                 self.output_file.set(filename)
-                self.output_label.config(text=f"Saved: {Path(filename).name}")
+                self.output_label.configure(text=f"Saved: {Path(filename).name}")
                 self.status_text.set(f"Word cloud saved to: {filename}")
+                self.status_label.configure(text=f"Word cloud saved to: {filename}")
                 messagebox.showinfo(
                     "Success",
                     f"Word cloud saved successfully!\n\nSaved to:\n{filename}"
@@ -971,9 +879,9 @@ class WordCloudGUI:
         """Update the preset mask combobox with current available masks (without extension)."""
         preset_masks = list_mask_files(without_extension=True)
         preset_mask_values = ["None"] + preset_masks + ["Custom..."]
-        self.preset_mask_combo.config(values=preset_mask_values)
+        self.preset_mask_combo.configure(values=preset_mask_values)
     
-    def _on_preset_mask_selected(self, event=None):
+    def _on_preset_mask_selected(self, value):
         """Handle preset mask selection change."""
         selected = self.preset_mask.get()
         
@@ -993,6 +901,7 @@ class WordCloudGUI:
         else:
             # Preset mask selected - clear custom mask file
             self.mask_file.set("")
+            self.mask_file_label.configure(text="")
             # Verify the preset mask exists
             mask_path = get_mask_path(selected)
             if not mask_path:
@@ -1027,9 +936,9 @@ class WordCloudGUI:
         """Update the preset font combobox with current available fonts (with friendly display names)."""
         preset_fonts = list_font_files(without_extension=True, with_display_names=True)
         preset_font_values = ["Default"] + preset_fonts + ["Custom..."]
-        self.preset_font_combo.config(values=preset_font_values)
+        self.preset_font_combo.configure(values=preset_font_values)
     
-    def _on_preset_font_selected(self, event=None):
+    def _on_preset_font_selected(self, value):
         """Handle preset font selection change."""
         selected = self.preset_font.get()
         
@@ -1055,6 +964,7 @@ class WordCloudGUI:
                 # Font not found, reset to Default
                 self.preset_font.set("Default")
                 self.font_path.set("")
+                self.font_path_label.configure(text="")
                 messagebox.showerror("Error", f"Font '{selected}' not found.")
     
     def on_select_font(self):
@@ -1090,9 +1000,10 @@ class WordCloudGUI:
             return
         
         # Disable generate button
-        self.generate_button.config(state="disabled")
+        self.generate_button.configure(state="disabled")
         self.generating = True
         self.status_text.set("Generating word cloud...")
+        self.status_label.configure(text="Generating word cloud...")
         
         # Start generation in separate thread
         thread = threading.Thread(target=self._generate_wordcloud, daemon=True)
@@ -1235,7 +1146,7 @@ class WordCloudGUI:
             # Update preview in main thread
             self.root.after(0, self._update_preview, temp_path)
             # Update output label to show preview is ready
-            self.root.after(0, lambda: self.output_label.config(text="Preview ready - Click 'Save As...' to save", foreground="green"))
+            self.root.after(0, lambda: self.output_label.configure(text="Preview ready - Click 'Save As...' to save", text_color="green"))
             self.root.after(0, self._generation_complete, True, "Word cloud generated successfully! Preview ready.")
             
         except Exception as e:
@@ -1245,8 +1156,9 @@ class WordCloudGUI:
     def _generation_complete(self, success, message):
         """Called when generation completes (in main thread)."""
         self.generating = False
-        self.generate_button.config(state="normal")
+        self.generate_button.configure(state="normal")
         self.status_text.set(message)
+        self.status_label.configure(text=message)
         
         if not success:
             messagebox.showerror("Error", message)
@@ -1255,8 +1167,12 @@ class WordCloudGUI:
     def _update_preview(self, image_path):
         """Update the preview area with generated image."""
         try:
-            if not image_path or not Path(image_path).exists():
-                self.preview_label.config(image="", text="Preview not available")
+            if not image_path:
+                self.preview_label.configure(image="", text="Preview not available (no path)")
+                return
+            
+            if not Path(image_path).exists():
+                self.preview_label.configure(image="", text=f"Preview not available (file not found: {image_path})")
                 return
             
             # Load and resize image for preview (larger preview area)
@@ -1282,15 +1198,20 @@ class WordCloudGUI:
             max_height = max(max_height, 450)
             
             img.thumbnail((max_width, max_height), Image.Resampling.LANCZOS)
-            img_tk = ImageTk.PhotoImage(img)
+            # Use CTkImage for better compatibility with CustomTkinter
+            img_ctk = ctk.CTkImage(light_image=img, dark_image=img, size=img.size)
             
             # Update label
-            self.preview_label.config(image=img_tk, text="")
-            self.preview_label.image = img_tk  # Keep a reference
-            self.preview_image = img_tk
+            self.preview_label.configure(image=img_ctk, text="")
+            self.preview_label.image = img_ctk  # Keep a reference
+            self.preview_image = img_ctk
             
         except Exception as e:
-            self.preview_label.config(image="", text=f"Error loading preview: {str(e)}")
+            import traceback
+            error_msg = f"Error loading preview: {str(e)}"
+            print(f"DEBUG _update_preview error: {error_msg}")
+            print(traceback.format_exc())
+            self.preview_label.configure(image="", text=error_msg)
     
     def _on_closing(self):
         """Handle window closing event - clean up temporary files."""
@@ -1305,7 +1226,7 @@ class WordCloudGUI:
 
 def main():
     """Entry point for GUI application."""
-    root = tk.Tk()
+    root = ctk.CTk()
     app = WordCloudGUI(root)
     root.mainloop()
 

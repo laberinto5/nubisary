@@ -17,7 +17,9 @@ python-docx>=1.0.0    # DOCX text extraction
 # Users should convert .doc files to .docx or .txt first
 
 # GUI dependencies
-tkcolorpicker2>=2.1.1  # Enhanced color picker with HSV/HSL interface (optional, has fallback to native colorchooser)
+customtkinter>=5.2.0   # Modern GUI framework (replaces tkinter for visual components)
+tkcolorpicker2>=1.0    # Enhanced color picker with HSV/HSL interface (optional, has fallback to native colorchooser)
+# Note: tkinter comes with Python by default, still used for Menu, filedialog, messagebox, Canvas, Spinbox
 
 # Testing
 pytest>=7.0.0
