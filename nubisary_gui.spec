@@ -87,34 +87,50 @@ if os.path.exists(fonts_path):
         print(f"Including {len(font_files)} font files in bundle")
 
 # Include customtkinter assets (required for proper functionality)
-# CustomTkinter needs its assets directory to be included
+# Usar collect_all es la forma más robusta según la comunidad
 try:
-    import customtkinter
-    ctk_path = os.path.dirname(customtkinter.__file__)
-    
-    # Include assets directory
-    ctk_assets = os.path.join(ctk_path, 'assets')
-    if os.path.exists(ctk_assets):
-        datas.append((ctk_assets, 'customtkinter/assets'))
-        print(f"Including customtkinter assets from {ctk_assets}")
-    
-    # Include themes directory if it exists
-    ctk_themes = os.path.join(ctk_path, 'themes')
-    if os.path.exists(ctk_themes):
-        datas.append((ctk_themes, 'customtkinter/themes'))
-        print(f"Including customtkinter themes from {ctk_themes}")
-    
-    # Try collect_data_files as additional method
+    from PyInstaller.utils.hooks import collect_all
+    # collect_all recolecta TODO: módulos, datos, binarios
+    ctk_all = collect_all('customtkinter')
+    if ctk_all:
+        # ctk_all es una tupla: (binaries, datas, hiddenimports)
+        if len(ctk_all) >= 2 and ctk_all[1]:
+            datas.extend(ctk_all[1])
+            print(f"Including {len(ctk_all[1])} customtkinter data files via collect_all")
+        if len(ctk_all) >= 3 and ctk_all[2]:
+            # Los hiddenimports ya se manejan con collect_submodules, pero por si acaso
+            print(f"collect_all encontró {len(ctk_all[2])} hidden imports adicionales")
+except ImportError:
+    # Fallback si collect_all no está disponible
+    print("Warning: collect_all no disponible, usando método manual")
     try:
-        customtkinter_datas = collect_data_files('customtkinter')
-        if customtkinter_datas:
-            datas.extend(customtkinter_datas)
-            print(f"Including {len(customtkinter_datas)} additional customtkinter data files")
-    except Exception:
-        pass  # collect_data_files may fail, but manual inclusion should work
+        import customtkinter
+        ctk_path = os.path.dirname(customtkinter.__file__)
         
+        # Include assets directory
+        ctk_assets = os.path.join(ctk_path, 'assets')
+        if os.path.exists(ctk_assets):
+            datas.append((ctk_assets, 'customtkinter/assets'))
+            print(f"Including customtkinter assets from {ctk_assets}")
+        
+        # Include themes directory if it exists
+        ctk_themes = os.path.join(ctk_path, 'themes')
+        if os.path.exists(ctk_themes):
+            datas.append((ctk_themes, 'customtkinter/themes'))
+            print(f"Including customtkinter themes from {ctk_themes}")
+    except Exception as e:
+        print(f"Warning: Could not include customtkinter assets: {e}")
 except Exception as e:
-    print(f"Warning: Could not include customtkinter assets: {e}")
+    print(f"Warning: collect_all failed: {e}, trying manual method")
+    try:
+        import customtkinter
+        ctk_path = os.path.dirname(customtkinter.__file__)
+        ctk_assets = os.path.join(ctk_path, 'assets')
+        if os.path.exists(ctk_assets):
+            datas.append((ctk_assets, 'customtkinter/assets'))
+            print(f"Including customtkinter assets (manual fallback)")
+    except Exception as e2:
+        print(f"Warning: Manual fallback also failed: {e2}")
 
 # Uncomment to bundle NLTK data (increases executable size significantly):
 # if nltk_data_path and os.path.exists(nltk_data_path):
@@ -148,10 +164,8 @@ hiddenimports = [
     # Core dependencies
     'wordcloud',
     'wordcloud.wordcloud',
-    'wordcloud.color_from_size',
     'nltk',
     'nltk.corpus',
-    'nltk.corpus.stopwords',
     'nltk.tokenize',
     'nltk.tokenize.punkt',
     'nltk.data',
@@ -198,7 +212,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     collect_submodules=['customtkinter'],  # Explicitly collect all customtkinter submodules
-    hookspath=[],
+    hookspath=[os.path.dirname(os.path.abspath(__file__))],  # Incluir hooks locales
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
