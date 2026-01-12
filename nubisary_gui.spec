@@ -76,6 +76,17 @@ if os.path.exists(fonts_path):
         datas.append((fonts_path, 'samples/fonts'))
         print(f"Including {len(font_files)} font files in bundle")
 
+# Include customtkinter assets (required for proper functionality)
+try:
+    import customtkinter
+    ctk_path = os.path.dirname(customtkinter.__file__)
+    ctk_assets = os.path.join(ctk_path, 'assets')
+    if os.path.exists(ctk_assets):
+        datas.append((ctk_assets, 'customtkinter/assets'))
+        print("Including customtkinter assets")
+except Exception as e:
+    print(f"Warning: Could not include customtkinter assets: {e}")
+
 # Uncomment to bundle NLTK data (increases executable size significantly):
 # if nltk_data_path and os.path.exists(nltk_data_path):
 #     # Include only essential NLTK data (punkt, stopwords for common languages)
@@ -91,6 +102,18 @@ if os.path.exists(fonts_path):
 hiddenimports = [
     # GUI related
     'customtkinter',  # Modern GUI framework
+    'customtkinter.windows',  # CustomTkinter windows module
+    'customtkinter.windows.widgets',  # CustomTkinter widgets
+    'customtkinter.windows.widgets.ctk_button',
+    'customtkinter.windows.widgets.ctk_label',
+    'customtkinter.windows.widgets.ctk_frame',
+    'customtkinter.windows.widgets.ctk_entry',
+    'customtkinter.windows.widgets.ctk_slider',
+    'customtkinter.windows.widgets.ctk_checkbox',
+    'customtkinter.windows.widgets.ctk_option_menu',
+    'customtkinter.windows.widgets.ctk_scrollbar',
+    'customtkinter.windows.widgets.ctk_image',
+    'customtkinter.windows.widgets.core_widget_classes',
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',
