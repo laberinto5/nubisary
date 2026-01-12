@@ -90,50 +90,24 @@ if os.path.exists(fonts_path):
         print(f"Including {len(font_files)} font files in bundle")
 
 # Include customtkinter assets (required for proper functionality)
-# Usar collect_all es la forma más robusta según la comunidad
+# collect_all is the recommended approach - it collects everything needed
 try:
     from PyInstaller.utils.hooks import collect_all
-    # collect_all recolecta TODO: módulos, datos, binarios
     ctk_all = collect_all('customtkinter')
-    if ctk_all:
-        # ctk_all es una tupla: (binaries, datas, hiddenimports)
-        if len(ctk_all) >= 2 and ctk_all[1]:
-            datas.extend(ctk_all[1])
-            print(f"Including {len(ctk_all[1])} customtkinter data files via collect_all")
-        if len(ctk_all) >= 3 and ctk_all[2]:
-            # Los hiddenimports ya se manejan con collect_submodules, pero por si acaso
-            print(f"collect_all encontró {len(ctk_all[2])} hidden imports adicionales")
-except ImportError:
-    # Fallback si collect_all no está disponible
-    print("Warning: collect_all no disponible, usando método manual")
-    try:
-        import customtkinter
-        ctk_path = os.path.dirname(customtkinter.__file__)
-        
-        # Include assets directory
-        ctk_assets = os.path.join(ctk_path, 'assets')
-        if os.path.exists(ctk_assets):
-            datas.append((ctk_assets, 'customtkinter/assets'))
-            print(f"Including customtkinter assets from {ctk_assets}")
-        
-        # Include themes directory if it exists
-        ctk_themes = os.path.join(ctk_path, 'themes')
-        if os.path.exists(ctk_themes):
-            datas.append((ctk_themes, 'customtkinter/themes'))
-            print(f"Including customtkinter themes from {ctk_themes}")
-    except Exception as e:
-        print(f"Warning: Could not include customtkinter assets: {e}")
+    if ctk_all and len(ctk_all) >= 2 and ctk_all[1]:
+        datas.extend(ctk_all[1])
+        print(f"Including {len(ctk_all[1])} customtkinter data files")
 except Exception as e:
-    print(f"Warning: collect_all failed: {e}, trying manual method")
+    # Simple fallback: manually include assets directory
     try:
         import customtkinter
         ctk_path = os.path.dirname(customtkinter.__file__)
         ctk_assets = os.path.join(ctk_path, 'assets')
         if os.path.exists(ctk_assets):
             datas.append((ctk_assets, 'customtkinter/assets'))
-            print(f"Including customtkinter assets (manual fallback)")
-    except Exception as e2:
-        print(f"Warning: Manual fallback also failed: {e2}")
+            print(f"Including customtkinter assets (fallback)")
+    except Exception:
+        print(f"Warning: Could not include customtkinter assets: {e}")
 
 # Collect all customtkinter submodules automatically
 customtkinter_hiddenimports = collect_submodules('customtkinter')
@@ -204,7 +178,7 @@ a = Analysis(
     datas=datas,
     hiddenimports=hiddenimports,
     collect_submodules=['customtkinter'],  # Explicitly collect all customtkinter submodules
-    hookspath=[os.path.dirname(os.path.abspath(__file__))],  # Incluir hooks locales
+    hookspath=[],  # No custom hooks needed
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
