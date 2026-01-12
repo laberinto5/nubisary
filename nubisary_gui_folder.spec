@@ -8,6 +8,16 @@ import os
 import sys
 from pathlib import Path
 
+# PyInstaller hooks for collecting modules and data files
+try:
+    from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+except ImportError:
+    # Fallback if hooks are not available
+    def collect_submodules(package_name):
+        return []
+    def collect_data_files(package_name):
+        return []
+
 # Encryption key (16 bytes for AES-128, 24 bytes for AES-192, or 32 bytes for AES-256)
 # WARNING: This provides obfuscation, not real security. The key is embedded in the executable.
 # Set to None to disable encryption, or provide a 16-character string
@@ -173,7 +183,7 @@ hiddenimports = [
     'src.logger',
     'gui',
     'gui.main',
-]
+] + customtkinter_hiddenimports  # Add all collected submodules
 
 a = Analysis(
     ['nubisary_gui.py'],
@@ -181,6 +191,7 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
+    collect_submodules=['customtkinter'],  # Explicitly collect all customtkinter submodules
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],

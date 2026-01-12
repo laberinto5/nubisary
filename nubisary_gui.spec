@@ -7,6 +7,16 @@ import os
 import sys
 from pathlib import Path
 
+# PyInstaller hooks for collecting modules and data files
+try:
+    from PyInstaller.utils.hooks import collect_submodules, collect_data_files
+except ImportError:
+    # Fallback if hooks are not available
+    def collect_submodules(package_name):
+        return []
+    def collect_data_files(package_name):
+        return []
+
 block_cipher = None
 
 # Get the directory where this spec file is located
@@ -77,15 +87,23 @@ if os.path.exists(fonts_path):
         print(f"Including {len(font_files)} font files in bundle")
 
 # Include customtkinter assets (required for proper functionality)
+# Method 1: Use collect_data_files (preferred)
 try:
-    import customtkinter
-    ctk_path = os.path.dirname(customtkinter.__file__)
-    ctk_assets = os.path.join(ctk_path, 'assets')
-    if os.path.exists(ctk_assets):
-        datas.append((ctk_assets, 'customtkinter/assets'))
-        print("Including customtkinter assets")
+    customtkinter_datas = collect_data_files('customtkinter')
+    datas.extend(customtkinter_datas)
+    print(f"Including {len(customtkinter_datas)} customtkinter data files")
 except Exception as e:
-    print(f"Warning: Could not include customtkinter assets: {e}")
+    print(f"Warning: collect_data_files failed: {e}")
+    # Method 2: Fallback to manual inclusion
+    try:
+        import customtkinter
+        ctk_path = os.path.dirname(customtkinter.__file__)
+        ctk_assets = os.path.join(ctk_path, 'assets')
+        if os.path.exists(ctk_assets):
+            datas.append((ctk_assets, 'customtkinter/assets'))
+            print("Including customtkinter assets (manual method)")
+    except Exception as e2:
+        print(f"Warning: Could not include customtkinter assets: {e2}")
 
 # Uncomment to bundle NLTK data (increases executable size significantly):
 # if nltk_data_path and os.path.exists(nltk_data_path):
@@ -97,6 +115,9 @@ except Exception as e:
 #     for item in essential_nltk:
 #         if os.path.exists(item[1]):
 #             datas.append(item)
+
+# Collect all customtkinter submodules automatically
+customtkinter_hiddenimports = collect_submodules('customtkinter')
 
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
@@ -114,6 +135,7 @@ hiddenimports = [
     'customtkinter.windows.widgets.ctk_scrollbar',
     'customtkinter.windows.widgets.ctk_image',
     'customtkinter.windows.widgets.core_widget_classes',
+] + customtkinter_hiddenimports  # Add all collected submodules
     'PIL._tkinter_finder',
     'PIL.ImageTk',
     'matplotlib.backends.backend_tkagg',
@@ -177,6 +199,7 @@ a = Analysis(
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
+    collect_submodules=['customtkinter'],  # Explicitly collect all customtkinter submodules
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
