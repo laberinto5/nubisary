@@ -100,6 +100,9 @@ try:
 except Exception as e:
     print(f"Warning: Could not include customtkinter assets: {e}")
 
+# Collect all customtkinter submodules automatically
+customtkinter_hiddenimports = collect_submodules('customtkinter')
+
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
     # GUI related
