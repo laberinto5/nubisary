@@ -922,10 +922,10 @@ class WordCloudGUI:
                             f"Word cloud saved successfully, but statistics export failed:\n{str(e)}"
                         )
                 else:
-                messagebox.showinfo(
-                    "Success",
-                    f"Word cloud saved successfully!\n\nSaved to:\n{filename}"
-                )
+                    messagebox.showinfo(
+                        "Success",
+                        f"Word cloud saved successfully!\n\nSaved to:\n{filename}"
+                    )
             except Exception as e:
                 messagebox.showerror(
                     "Save Error",
@@ -1240,21 +1240,21 @@ class WordCloudGUI:
                 frequencies = self.cached_frequencies
             else:
                 # Need to reprocess text - processing options changed
-            # Clean up previous temporary file if exists
-            if self.temp_output_file and Path(self.temp_output_file).exists():
-                try:
-                    Path(self.temp_output_file).unlink()
-                except:
-                    pass
-            
-            # Process text to get frequencies (without generating image yet)
-            frequencies = process_text_to_frequencies(
-                input_file=self.input_file.get(),
-                language=language,
-                config=config,
-                clean_text=True
-            )
+                # Clean up previous temporary file if exists
+                if self.temp_output_file and Path(self.temp_output_file).exists():
+                    try:
+                        Path(self.temp_output_file).unlink()
+                    except:
+                        pass
                 
+                # Process text to get frequencies (without generating image yet)
+                frequencies = process_text_to_frequencies(
+                    input_file=self.input_file.get(),
+                    language=language,
+                    config=config,
+                    clean_text=True
+                )
+                    
                 # Cache raw frequencies and hash for future use
                 self.cached_frequencies = frequencies
                 self.cached_processing_hash = current_hash

@@ -24,6 +24,8 @@ block_cipher = None
 # We use the working directory (where pyinstaller is run from) as the base path
 # This assumes the spec file and samples/ directory are in the same directory
 spec_file_dir = os.getcwd()
+if spec_file_dir not in sys.path:
+    sys.path.insert(0, spec_file_dir)
 
 # Determine if NLTK data should be included
 # For now, we'll let NLTK download at runtime (smaller executable)
@@ -86,6 +88,11 @@ if os.path.exists(fonts_path):
         datas.append((fonts_path, 'samples/fonts'))
         print(f"Including {len(font_files)} font files in bundle")
 
+# Include GUI package files explicitly (ensures gui.main is importable at runtime)
+gui_path = os.path.join(spec_file_dir, 'gui')
+if os.path.exists(gui_path):
+    datas.append((gui_path, 'gui'))
+
 # Include customtkinter assets (required for proper functionality)
 # collect_all is the recommended approach - it collects everything needed
 try:
@@ -119,6 +126,7 @@ except Exception as e:
 
 # Collect all customtkinter submodules automatically
 customtkinter_hiddenimports = collect_submodules('customtkinter')
+gui_hiddenimports = collect_submodules('gui')
 
 # Hidden imports - modules that PyInstaller might miss
 hiddenimports = [
@@ -177,11 +185,11 @@ hiddenimports = [
     'src.logger',
     'gui',
     'gui.main',
-] + customtkinter_hiddenimports  # Add all collected submodules
+] + customtkinter_hiddenimports + gui_hiddenimports  # Add all collected submodules
 
 a = Analysis(
     ['nubisary_gui.py'],
-    pathex=[],
+    pathex=[spec_file_dir],
     binaries=[],
     datas=datas,
     hiddenimports=hiddenimports,
