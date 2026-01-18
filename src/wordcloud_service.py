@@ -27,6 +27,7 @@ from src.document_converter import (
 )
 from src.text_processor import (
     preprocess_text,
+    normalize_plurals_with_lemmatization,
     generate_word_count_from_text,
     remove_excluded_text,
     parse_exclude_words_argument,
@@ -79,21 +80,9 @@ def process_text_to_frequencies(
         FileHandlerError: For file I/O errors
     """
     try:
-        # Validate input file
-        validate_input_file(input_file)
-        
-        # Check if input is JSON
+        # Determine input type for logging (full validation happens in process_text_to_frequencies)
         is_json = is_json_file(input_file)
-        
-        # Check if input is a convertible document
         is_document = is_convertible_document(input_file) if not is_json else False
-        
-        # Validate JSON format if applicable
-        if is_json:
-            validate_json_format(input_file)
-        else:
-            # Validate language for text files (including documents that will be converted)
-            validate_language(language, config.include_stopwords)
         
         # Process input based on type
         if is_json:
@@ -104,9 +93,8 @@ def process_text_to_frequencies(
             # Read and process text file (auto-converts documents if needed)
             if is_document:
                 logger.info(f'Converting document to text...')
-                if clean_text:
-                    logger.info(f'Text cleaning enabled (removing page numbers, excessive blank lines)')
-            text = read_text_file(input_file, auto_convert=True, clean_text=clean_text)
+                logger.info('Text cleaning enabled (removing page numbers, excessive blank lines)')
+            text = read_text_file(input_file, auto_convert=True, clean_text=True)
             if is_document:
                 logger.info(f'Document converted successfully')
             
@@ -126,20 +114,23 @@ def process_text_to_frequencies(
                     text = apply_regex_transformations(text, regex_rules, regex_case_sensitive)
                     logger.info('Regex transformations applied to text')
             
-            text_processed = preprocess_text(text, config.case_sensitive)
+            text_processed = preprocess_text(
+                text,
+                config.case_sensitive,
+                include_numbers=config.include_numbers
+            )
+            
+            # Apply language-dependent transformations (lemmatization)
+            if config.lemmatize:
+                text_processed = normalize_plurals_with_lemmatization(text_processed, language)
             
             # Generate word frequencies
             frequencies = generate_word_count_from_text(
                 text=text_processed,
                 language=language,
                 include_stopwords=config.include_stopwords,
-                collocations=config.collocations,
-                max_words=config.max_words,
-                min_word_length=config.min_word_length,
-                normalize_plurals=config.normalize_plurals,
-                include_numbers=config.include_numbers,
-                canvas_width=config.canvas_width,
-                canvas_height=config.canvas_height
+                ngram=config.ngram,
+                include_numbers=config.include_numbers
             )
             logger.info(f'Generated word frequencies from text ({len(frequencies)} unique words)')
         
@@ -244,8 +235,8 @@ def generate_wordcloud(
             logger.info(f'  - Language: {language}')
             logger.info(f'  - Case sensitive: {config.case_sensitive}')
             logger.info(f'  - Stopwords included: {config.include_stopwords}')
-            logger.info(f'  - Collocations: {config.collocations}')
-            logger.info(f'  - Normalize plurals: {config.normalize_plurals}')
+            logger.info(f'  - N-gram mode: {config.ngram}')
+            logger.info(f'  - Lematize: {config.lemmatize}')
             logger.info(f'  - Include numbers: {config.include_numbers}')
         logger.info(f'  - Background color: {config.background_color}')
         if config.colormap:

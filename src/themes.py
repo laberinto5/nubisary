@@ -51,7 +51,7 @@ class Theme:
             canvas_height=config.canvas_height,
             max_words=config.max_words,
             min_word_length=config.min_word_length,
-            normalize_plurals=config.normalize_plurals,
+            lemmatize=config.lemmatize,
             include_numbers=config.include_numbers,
             background_color=config.background_color or self.background_color,
             font_color=config.font_color if config.font_color is not None else self.font_color,
@@ -65,7 +65,7 @@ class Theme:
             language=config.language,
             include_stopwords=config.include_stopwords,
             case_sensitive=config.case_sensitive,
-            collocations=config.collocations
+            ngram=config.ngram
         )
         return new_config
 

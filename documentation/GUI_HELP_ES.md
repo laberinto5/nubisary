@@ -62,8 +62,8 @@ Para filtrado avanzado de texto, usa expresiones regulares:
 
 - **Incluir palabras vacías**: Mantener palabras comunes (generalmente desmarcado)
 - **Sensible a mayúsculas**: Distinguir entre mayúsculas y minúsculas
-- **Colocaciones**: Agrupar pares de palabras comunes
-- **Normalizar plurales**: Tratar formas singulares y plurales como la misma palabra
+- **N-gramas**: Elegir tokenización `unigram` o `bigram`
+- **Lematizar**: Reducir palabras a su lema (forma base)
 - **Incluir números**: Mantener valores numéricos en la nube de palabras
 - **Longitud mínima de palabra**: Mínimo de caracteres por palabra (por defecto: 0)
 - **Máximo de palabras**: Número máximo de palabras a mostrar (por defecto: 200)
@@ -134,11 +134,11 @@ Elige una fuente para tu nube de palabras:
   - Decorativas: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Personalizada...**: Selecciona un archivo de fuente de tu sistema
 
-### Exportar Estadísticas
+### Exportar Vocabulario
 
 Exporta datos de frecuencia de palabras:
 
-- Marca "Exportar estadísticas" para generar archivos JSON y CSV
+- Marca "Exportar vocabulario" para generar archivos JSON y CSV
 - Opcionalmente limita a las N palabras principales (ej: top 20)
 - Los archivos se guardan junto a tu imagen de nube de palabras
 

@@ -224,8 +224,8 @@ Maximum number of words to include in the word cloud (default: 200).
 ### `-L, --min-word-length INT`
 Minimum character length for words included in the word cloud (default: 0).
 
-### `-P, --normalize-plurals`
-Normalize plural forms (e.g., "cats" and "cat" are treated as the same word).
+### `-P, --lematize`
+Lematize words before generating the word cloud.
 
 ### `-N, --include-numbers`
 Include numbers in the word cloud (default: numbers are excluded).
@@ -233,31 +233,30 @@ Include numbers in the word cloud (default: numbers are excluded).
 ### `-W, --include-stopwords`
 Include stopwords (default: stopwords are filtered out).
 
-### `-C, --collocations`
-Include collocations (bigrams/phrases) in the word cloud.
+### `--ngram`
+Tokenization mode for frequency generation. Options:
+- `unigram` (default)
+- `bigram`
 
 ### `-U, --case-sensitive`
 Make word processing case-sensitive (default: case-insensitive).
 
-## Statistics Export
+## Vocabulary Export
 
-### `-S, --export-stats`
-Export word frequency statistics to JSON and CSV files.
+### `-V, --vocabulary`
+Export processed vocabulary to JSON and CSV files.
 
-### `--stats-top-n INT`
+### `--vocabulary-top-n INT`
 Export only the top N words (default: all words).
 
 **Example:**
 ```bash
-python nubisary.py generate -i text.txt -l english --export-stats --stats-top-n 20
+python nubisary.py generate -i text.txt -l english --vocabulary --vocabulary-top-n 20
 ```
 
-### `--stats-output PATH`
-Base filename for statistics files. If not specified, filenames are auto-generated based on input filename.
-
 **Output Files:**
-- `{base}.json`: Word frequencies in JSON format
-- `{base}.csv`: Word frequencies in CSV format
+- `{base}_vocabulary.json`: Word frequencies in JSON format
+- `{base}_vocabulary.csv`: Word frequencies in CSV format
 
 ## Command: `convert`
 
@@ -280,7 +279,7 @@ python nubisary.py convert [OPTIONS]
 python nubisary.py convert -i document.pdf -o document.txt
 ```
 
-**Note:** Statistics export (`--export-stats`) is only available with the `generate` command.
+**Note:** Vocabulary export (`--vocabulary`) is only available with the `generate` command.
 
 ## Common Usage Patterns
 
@@ -291,7 +290,7 @@ python nubisary.py generate -i text.txt -l english --theme vibrant
 
 ### From PDF with Text Cleaning
 ```bash
-python nubisary.py generate -i document.pdf -l spanish --theme dark --export-stats
+python nubisary.py generate -i document.pdf -l spanish --theme dark --vocabulary
 ```
 
 ### Exclude Repeated Headers
@@ -299,9 +298,9 @@ python nubisary.py generate -i document.pdf -l spanish --theme dark --export-sta
 python nubisary.py generate -i document.pdf -l spanish -ew "Título del Libro" -rr "^Página \d+" --theme vibrant
 ```
 
-### Custom Colors and Statistics
+### Custom Colors and Vocabulary
 ```bash
-python nubisary.py generate -i text.txt -l english -B white -F "#FF0000" --export-stats --stats-top-n 50
+python nubisary.py generate -i text.txt -l english -B white -F "#FF0000" --vocabulary --vocabulary-top-n 50
 ```
 
 ### Advanced Regex Processing
@@ -335,7 +334,7 @@ Understanding the processing order helps you use options effectively:
 5. **Text Preprocessing** (remove punctuation, lowercase if not case-sensitive)
 6. **Word Frequency Generation** (with language-specific stopwords)
 7. **Word Cloud Generation** (with visual settings)
-8. **Statistics Export** (if `--export-stats`)
+8. **Vocabulary Export** (if `--vocabulary`)
 
 ## Error Handling
 
@@ -351,7 +350,7 @@ The CLI provides clear error messages for:
 
 - Use `--theme` for quick, professional results
 - Combine `--exclude-words` and `--regex-rule` for complex text filtering
-- Export statistics (`--export-stats`) to analyze word frequencies separately
+- Export vocabulary (`--vocabulary`) to analyze word frequencies separately
 - Use `--colormap` for vibrant, multi-color word clouds
 - Test regex patterns with small samples before processing large documents
 - Use `convert` command to review converted text before generating word clouds

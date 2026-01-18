@@ -6,7 +6,7 @@ import json
 import tempfile
 from unittest.mock import patch, MagicMock, mock_open
 
-from src.wordcloud_service import generate_wordcloud, WordCloudServiceError
+from src.wordcloud_service import generate_wordcloud, process_text_to_frequencies, WordCloudServiceError
 from src.config import WordCloudConfig
 from src.validators import ValidationError, FileValidationError
 from src.file_handlers import FileHandlerError
@@ -191,7 +191,7 @@ class TestGenerateWordcloud:
         mock_is_json,
         mock_validate_file
     ):
-        """Test that clean_text parameter is passed correctly."""
+        """Test that document cleaning is always applied."""
         mock_read_text.return_value = "test text"
         mock_preprocess.return_value = "test text"
         mock_generate_count.return_value = {'test': 1.0}
@@ -200,7 +200,7 @@ class TestGenerateWordcloud:
         
         config = WordCloudConfig()
         
-        # Test with clean_text=True
+        # Test with clean_text=True (always cleaned)
         generate_wordcloud(
             input_file='test.txt',
             language='english',
@@ -212,8 +212,112 @@ class TestGenerateWordcloud:
         # Verify clean_text was passed to read_text_file
         call_args = mock_read_text.call_args
         assert call_args[1]['clean_text'] is True
+
+
+class TestProcessTextToFrequencies:
+    """Tests for process_text_to_frequencies pipeline."""
+
+    @patch('src.wordcloud_service.validate_input_file')
+    @patch('src.wordcloud_service.is_json_file', return_value=False)
+    @patch('src.wordcloud_service.is_convertible_document', return_value=False)
+    @patch('src.wordcloud_service.validate_language')
+    @patch('src.wordcloud_service.read_text_file')
+    @patch('src.wordcloud_service.remove_excluded_text')
+    @patch('src.wordcloud_service.apply_regex_transformations')
+    @patch('src.wordcloud_service.preprocess_text')
+    @patch('src.wordcloud_service.normalize_plurals_with_lemmatization')
+    @patch('src.wordcloud_service.generate_word_count_from_text')
+    def test_pipeline_order_with_lemmatize(
+        self,
+        mock_generate_count,
+        mock_normalize,
+        mock_preprocess,
+        mock_apply_regex,
+        mock_remove_excluded,
+        mock_read_text,
+        mock_validate_lang,
+        mock_is_doc,
+        mock_is_json,
+        mock_validate_file
+    ):
+        """Test ordered pipeline: read -> exclude -> regex -> preprocess -> lemmatize -> count."""
+        mock_read_text.return_value = "RAW"
+        mock_remove_excluded.return_value = "EXCLUDED"
+        mock_apply_regex.return_value = "REGEX"
+        mock_preprocess.return_value = "PREPROC"
+        mock_normalize.return_value = "LEMMA"
+        mock_generate_count.return_value = {"foo": 1}
+
+        config = WordCloudConfig(
+            include_stopwords=True,
+            case_sensitive=False,
+            ngram="bigram",
+            lemmatize=True,
+            include_numbers=False
+        )
+
+        result = process_text_to_frequencies(
+            input_file="test.txt",
+            language="spanish",
+            config=config,
+            clean_text=True,
+            exclude_words="foo,bar",
+            exclude_case_sensitive=False,
+            regex_rule="foo|bar",
+            regex_case_sensitive=False
+        )
+
+        assert result == {"foo": 1}
+        mock_read_text.assert_called_once_with("test.txt", auto_convert=True, clean_text=True)
+        mock_remove_excluded.assert_called_once_with("RAW", ["foo", "bar"], False)
+        mock_apply_regex.assert_called_once()
+        mock_preprocess.assert_called_once_with("REGEX", False, include_numbers=False)
+        mock_normalize.assert_called_once_with("PREPROC", "spanish")
+        mock_generate_count.assert_called_once_with(
+            text="LEMMA",
+            language="spanish",
+            include_stopwords=True,
+            ngram="bigram",
+            include_numbers=False
+        )
+
+    @patch('src.wordcloud_service.validate_input_file')
+    @patch('src.wordcloud_service.is_json_file', return_value=False)
+    @patch('src.wordcloud_service.is_convertible_document', return_value=False)
+    @patch('src.wordcloud_service.validate_language')
+    @patch('src.wordcloud_service.read_text_file')
+    @patch('src.wordcloud_service.preprocess_text')
+    @patch('src.wordcloud_service.normalize_plurals_with_lemmatization')
+    @patch('src.wordcloud_service.generate_word_count_from_text')
+    def test_pipeline_skips_lemmatize_when_disabled(
+        self,
+        mock_generate_count,
+        mock_normalize,
+        mock_preprocess,
+        mock_read_text,
+        mock_validate_lang,
+        mock_is_doc,
+        mock_is_json,
+        mock_validate_file
+    ):
+        """Test that lemmatization is skipped when disabled."""
+        mock_read_text.return_value = "RAW"
+        mock_preprocess.return_value = "PREPROC"
+        mock_generate_count.return_value = {"foo": 1}
+
+        config = WordCloudConfig(lemmatize=False, include_stopwords=True)
+
+        result = process_text_to_frequencies(
+            input_file="test.txt",
+            language="spanish",
+            config=config,
+            clean_text=True
+        )
+
+        assert result == {"foo": 1}
+        mock_normalize.assert_not_called()
         
-        # Test with clean_text=False
+        # Test with clean_text=False (still cleaned)
         generate_wordcloud(
             input_file='test.txt',
             language='english',
@@ -222,7 +326,7 @@ class TestGenerateWordcloud:
             show=False
         )
         
-        # Verify clean_text was passed as False
+        # Verify clean_text was still passed as True
         call_args = mock_read_text.call_args
-        assert call_args[1]['clean_text'] is False
+        assert call_args[1]['clean_text'] is True
 

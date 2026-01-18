@@ -10,12 +10,14 @@
   - Exclude specific words or phrases
   - Apply regex transformations for complex text filtering
   - Automatic text cleaning for converted documents
+-  - Lematize words to their base form
+-  - N-gram frequency mode (unigram or bigram)
 - **Flexible Customization**:
   - Custom colors and colormaps
   - Mask images for custom shapes
   - Font selection
   - Canvas size control
-- **Statistics Export**: Export word frequencies to JSON and CSV
+- **Vocabulary Export**: Export word frequencies to JSON and CSV
 - **Multi-language Support**: Built-in stopword support for 18 languages (Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew, Indonesian, Italian, Norwegian, Portuguese, Russian, Spanish, Swedish, Turkish)
 - **Dual Interface**: 
   - Command-line tool for automation and advanced users

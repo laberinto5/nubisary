@@ -32,7 +32,8 @@ WORDCLOUD_COLORS = [
     'white', 'blue', 'yellow', 'green', 'red', 'grey', 'black', 'orange'
 ]
 
-# Punctuation characters to remove from text
+# Punctuation characters to replace with spaces in text preprocessing
+# All punctuation is replaced with spaces (not removed) to preserve word boundaries
 PUNCTUATION = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
 
 # Default canvas dimensions
@@ -57,7 +58,7 @@ class WordCloudConfig:
     # Word settings
     max_words: int = DEFAULT_MAX_WORDS
     min_word_length: int = DEFAULT_MIN_WORD_LENGTH
-    normalize_plurals: bool = False
+    lemmatize: bool = False
     include_numbers: bool = False
     
     # Color settings
@@ -79,7 +80,7 @@ class WordCloudConfig:
     language: Optional[str] = None
     include_stopwords: bool = False
     case_sensitive: bool = False
-    collocations: bool = False
+    ngram: str = "unigram"  # "unigram" or "bigram"
 
 
 @dataclass

@@ -1,7 +1,7 @@
 """Unit tests for text_processor module."""
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from src.text_processor import (
     preprocess_text,
@@ -59,19 +59,57 @@ class TestPreprocessText:
         text = "!@#$%^&*()"
         result = preprocess_text(text, case_sensitive=True)
         assert result == ""
+    
+    def test_remove_numbers_when_disabled(self):
+        """Test that numeric tokens are removed when include_numbers is False."""
+        text = "Capítulo 12: página 3 y 12-45-10 y -14"
+        result = preprocess_text(text, case_sensitive=False, include_numbers=False)
+        assert "12" not in result
+        assert "3" not in result
+        assert "45" not in result
+        assert "10" not in result
+        assert "14" not in result
+        assert "capítulo" in result
+        assert "página" in result
+    
+    def test_remove_alphanumeric_when_disabled(self):
+        """Test that alphanumeric tokens are removed when include_numbers is False."""
+        text = "covid19 covid-19 A4 versión2 12:00"
+        result = preprocess_text(text, case_sensitive=False, include_numbers=False)
+        assert "covid19" not in result
+        assert "covid" not in result
+        assert "a4" not in result
+        assert "versión2" not in result
+        assert "12" not in result
+        assert "00" not in result
+    
+    def test_keep_numbers_when_enabled(self):
+        """Test that numeric tokens are kept when include_numbers is True."""
+        text = "capítulo 12 y 12:00 y -14"
+        result = preprocess_text(text, case_sensitive=False, include_numbers=True)
+        assert "12" in result
+        assert "00" in result
+        assert "14" in result
+
+    def test_remove_any_token_with_digits_when_disabled(self):
+        """Test that any token containing digits is removed when include_numbers is False."""
+        text = "covid-19 A4 12:30 -14 normal"
+        result = preprocess_text(text, case_sensitive=False, include_numbers=False)
+        assert "covid" not in result
+        assert "19" not in result
+        assert "a4" not in result
+        assert "12" not in result
+        assert "30" not in result
+        assert "14" not in result
+        assert "normal" in result
 
 
 class TestGenerateWordCountFromText:
     """Tests for generate_word_count_from_text function."""
     
-    @patch('src.text_processor.WordCloud')
     @patch('src.text_processor.stopwords')
-    def test_generate_word_count_basic(self, mock_stopwords, mock_wordcloud_class):
+    def test_generate_word_count_basic(self, mock_stopwords):
         """Test basic word count generation."""
-        # Setup mocks
-        mock_wordcloud = MagicMock()
-        mock_wordcloud.process_text.return_value = {'hello': 5.0, 'world': 3.0}
-        mock_wordcloud_class.return_value = mock_wordcloud
         mock_stopwords.words.return_value = ['the', 'a', 'an']
         
         text = "hello world hello"
@@ -81,18 +119,11 @@ class TestGenerateWordCountFromText:
             include_stopwords=False
         )
         
-        assert result == {'hello': 5.0, 'world': 3.0}
-        mock_wordcloud_class.assert_called_once()
-        mock_wordcloud.process_text.assert_called_once_with(text)
+        assert result == {'hello': 2, 'world': 1}
     
-    @patch('src.text_processor.WordCloud')
     @patch('src.text_processor.stopwords')
-    def test_generate_word_count_with_stopwords(self, mock_stopwords, mock_wordcloud_class):
+    def test_generate_word_count_with_stopwords(self, mock_stopwords):
         """Test word count generation with stopwords included."""
-        mock_wordcloud = MagicMock()
-        mock_wordcloud.process_text.return_value = {'hello': 5.0, 'the': 2.0}
-        mock_wordcloud_class.return_value = mock_wordcloud
-        
         text = "hello the world"
         result = generate_word_count_from_text(
             text=text,
@@ -100,49 +131,44 @@ class TestGenerateWordCountFromText:
             include_stopwords=True
         )
         
-        # When include_stopwords is True, stopwords should not be set
-        # (the code only sets stopwords when include_stopwords is False)
-        assert result == {'hello': 5.0, 'the': 2.0}
+        # When include_stopwords is True, stopwords.words should not be called
+        assert result == {'hello': 1, 'the': 1, 'world': 1}
         # Verify stopwords.words was not called when include_stopwords is True
         mock_stopwords.words.assert_not_called()
     
-    @patch('src.text_processor.WordCloud')
     @patch('src.text_processor.stopwords')
-    def test_generate_word_count_parameters(self, mock_stopwords, mock_wordcloud_class):
-        """Test that WordCloud is initialized with correct parameters."""
-        mock_wordcloud = MagicMock()
-        mock_wordcloud.process_text.return_value = {}
-        mock_wordcloud_class.return_value = mock_wordcloud
+    def test_generate_word_count_bigram(self, mock_stopwords):
+        """Test bigram word count generation."""
         mock_stopwords.words.return_value = []
         
-        generate_word_count_from_text(
-            text="test",
-            language='english',
+        text = "casa azul casa azul"
+        result = generate_word_count_from_text(
+            text=text,
+            language='spanish',
             include_stopwords=False,
-            collocations=True,
-            max_words=100,
-            min_word_length=3,
-            normalize_plurals=True,
-            include_numbers=False,
-            canvas_width=800,
-            canvas_height=400
+            ngram="bigram"
         )
         
-        # Verify WordCloud was called with correct parameters
-        mock_wordcloud_class.assert_called_once()
-        # call_args is a tuple: (args, kwargs) or a CallArgs object
-        if hasattr(mock_wordcloud_class.call_args, 'kwargs'):
-            call_kwargs = mock_wordcloud_class.call_args.kwargs
-        else:
-            call_kwargs = mock_wordcloud_class.call_args[1] if len(mock_wordcloud_class.call_args) > 1 else {}
+        # Adjacent bigrams: "casa azul", "azul casa", "casa azul"
+        assert result == {'casa azul': 2, 'azul casa': 1}
+
+    @patch('src.text_processor.stopwords')
+    def test_generate_word_count_bigram_excludes_numbers(self, mock_stopwords):
+        """Test number-containing tokens are removed before bigram counting."""
+        mock_stopwords.words.return_value = []
         
-        assert call_kwargs.get('width') == 800
-        assert call_kwargs.get('height') == 400
-        assert call_kwargs.get('collocations') is True
-        assert call_kwargs.get('max_words') == 100
-        assert call_kwargs.get('min_word_length') == 3
-        assert call_kwargs.get('normalize_plurals') is True
-        assert call_kwargs.get('include_numbers') is False
+        text = "casa 2024 azul covid19 casa 3d azul"
+        text = preprocess_text(text, case_sensitive=False, include_numbers=False)
+        result = generate_word_count_from_text(
+            text=text,
+            language='spanish',
+            include_stopwords=False,
+            ngram="bigram",
+            include_numbers=False
+        )
+        
+        # After removing digit tokens, bigrams are computed normally
+        assert result == {'casa azul': 2, 'azul casa': 1}
 
 
 class TestNormalizeSpaces:

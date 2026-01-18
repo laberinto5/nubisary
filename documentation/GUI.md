@@ -149,8 +149,9 @@ Adjust the word cloud dimensions:
 **Processing Options:**
 - ☑ **Include Stopwords**: Include common words (unchecked by default)
 - ☑ **Case Sensitive**: Preserve case in word processing (unchecked by default)
-- ☑ **Normalize Plurals**: Treat "cats" and "cat" as the same word (unchecked by default)
+- ☑ **Lematize**: Reduce words to their lemma (unchecked by default)
 - ☑ **Include Numbers**: Include numbers in word cloud (unchecked by default)
+- **N-gram**: Choose `unigram` or `bigram` tokenization for frequencies
 
 **Visual Options:**
 - **Relative Scaling**: Control size difference intensity (0.0-1.0, default: 0.5)
@@ -174,14 +175,17 @@ After generating:
 2. Choose a location and filename
 3. File is saved as PNG image
 
-### 7. Export Statistics (Optional)
+### 7. Export Vocabulary (Optional)
 
-If you want word frequency data:
+If you want the processed vocabulary with frequencies:
 
-1. Check **"Export Statistics"** before generating
-2. Statistics are automatically saved to:
-   - `{filename}.json` - Word frequencies in JSON format
-   - `{filename}.csv` - Word frequencies in CSV format
+1. Check **"Export vocabulary (JSON/CSV)"** before generating
+2. Vocabulary is automatically saved to:
+   - `{filename}_vocabulary.json` - Word frequencies in JSON format
+   - `{filename}_vocabulary.csv` - Word frequencies in CSV format
+
+**Save Vocabulary (JSON only):**
+- Use **"Save Vocabulary (Frequencies JSON)"** to export the latest vocabulary without saving a new PNG
 
 **Top N Words:**
 - Leave blank to export all words
@@ -217,8 +221,6 @@ If you want word frequency data:
 
 - **JSON input**: When using JSON files, language selection doesn't affect processing
 - **.doc files**: Older Word format (`.doc`) is not supported - convert to `.docx` or `.txt` first
-- **Mask images**: Mask support may be available in future versions
-- **Font selection**: Custom font selection may be available in future versions
 
 ## Troubleshooting
 

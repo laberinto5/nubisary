@@ -62,8 +62,8 @@ For advanced text filtering, use regular expressions:
 
 - **Include stopwords**: Keep common words (usually unchecked)
 - **Case sensitive**: Distinguish between uppercase and lowercase
-- **Collocations**: Group common word pairs together
-- **Normalize plurals**: Treat singular and plural forms as the same word
+- **N-gram**: Choose `unigram` or `bigram` tokenization
+- **Lematize**: Reduce words to their lemma (base form)
 - **Include numbers**: Keep numeric values in the word cloud
 - **Min word length**: Minimum characters per word (default: 0)
 - **Max words**: Maximum number of words to display (default: 200)
@@ -134,11 +134,11 @@ Choose a font for your word cloud:
   - Display: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Custom...**: Select a font file from your system
 
-### Export Statistics
+### Export Vocabulary
 
 Export word frequency data:
 
-- Check "Export statistics" to generate JSON and CSV files
+- Check "Export vocabulary" to generate JSON and CSV files
 - Optionally limit to top N words (e.g., top 20)
 - Files are saved alongside your word cloud image
 

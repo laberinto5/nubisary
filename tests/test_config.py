@@ -58,7 +58,7 @@ class TestWordCloudConfig:
         assert config.canvas_height == DEFAULT_CANVAS_HEIGHT
         assert config.max_words == DEFAULT_MAX_WORDS
         assert config.min_word_length == DEFAULT_MIN_WORD_LENGTH
-        assert config.normalize_plurals is False
+        assert config.lemmatize is False
         assert config.include_numbers is False
         assert config.background_color is None
         assert config.font_color is None
@@ -77,7 +77,7 @@ class TestWordCloudConfig:
             canvas_height=600,
             max_words=100,
             min_word_length=3,
-            normalize_plurals=True,
+            lemmatize=True,
             include_numbers=True,
             background_color='white',
             font_color='#FF0000',
@@ -93,7 +93,7 @@ class TestWordCloudConfig:
         assert config.canvas_height == 600
         assert config.max_words == 100
         assert config.min_word_length == 3
-        assert config.normalize_plurals is True
+        assert config.lemmatize is True
         assert config.include_numbers is True
         assert config.background_color == 'white'
         assert config.font_color == '#FF0000'
@@ -111,12 +111,12 @@ class TestWordCloudConfig:
             language='spanish',
             include_stopwords=True,
             case_sensitive=True,
-            collocations=True
+            ngram="bigram"
         )
         assert config.language == 'spanish'
         assert config.include_stopwords is True
         assert config.case_sensitive is True
-        assert config.collocations is True
+        assert config.ngram == "bigram"
 
 
 class TestAppConfig:

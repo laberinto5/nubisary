@@ -30,8 +30,9 @@ except ImportError:
     color_picker = colorchooser.askcolor
 
 from src.wordcloud_service import process_text_to_frequencies, WordCloudServiceError
-from src.wordcloud_generator import generate_word_cloud_from_frequencies
+from src.wordcloud_generator import generate_word_cloud_from_frequencies, apply_wordcloud_filters
 from src.config import WordCloudConfig, LANGUAGES_FOR_NLTK
+from src.statistics_exporter import export_statistics
 from src.themes import get_theme, get_theme_names, Theme
 from src.file_handlers import is_json_file, is_convertible_document, FileHandlerError
 from src.custom_themes import load_custom_theme_from_json, save_theme_to_json, CustomThemeError
@@ -56,6 +57,9 @@ class WordCloudGUI:
         self.generating = False
         self.generated_wordcloud = None  # Store generated WordCloud object
         self.temp_output_file = None  # Store temporary file path for preview
+        self.last_frequencies = None  # Store last generated frequencies for stats export
+        self.cached_frequencies = None  # Cached frequencies to avoid reprocessing
+        self.cached_processing_hash = None  # Hash of processing options to detect changes
     
     def setup_window(self):
         """Configure main window properties."""
@@ -252,8 +256,8 @@ class WordCloudGUI:
         # Processing options
         self.include_stopwords = tk.BooleanVar(value=False)
         self.case_sensitive = tk.BooleanVar(value=False)
-        self.collocations = tk.BooleanVar(value=False)
-        self.normalize_plurals = tk.BooleanVar(value=False)
+        self.ngram = tk.StringVar(value="unigram")
+        self.lematize = tk.BooleanVar(value=False)
         self.include_numbers = tk.BooleanVar(value=False)
         self.min_word_length = tk.IntVar(value=0)
         self.max_words = tk.IntVar(value=200)
@@ -285,8 +289,8 @@ class WordCloudGUI:
         self.font_path = tk.StringVar(value="")
         
         # Export options
-        self.export_stats = tk.BooleanVar(value=False)
-        self.stats_top_n = tk.StringVar(value="")
+        self.vocabulary = tk.BooleanVar(value=False)
+        self.vocabulary_top_n = tk.StringVar(value="")
         
         # Status
         self.status_text = tk.StringVar(value="Ready")
@@ -379,12 +383,14 @@ class WordCloudGUI:
         cb_frame1.pack(fill=tk.X, pady=2)
         ctk.CTkCheckBox(cb_frame1, text="Include stopwords", variable=self.include_stopwords).pack(side=tk.LEFT, padx=5)
         ctk.CTkCheckBox(cb_frame1, text="Case sensitive", variable=self.case_sensitive).pack(side=tk.LEFT, padx=5)
-        ctk.CTkCheckBox(cb_frame1, text="Collocations", variable=self.collocations).pack(side=tk.LEFT, padx=5)
+        ctk.CTkLabel(cb_frame1, text="N-gram:").pack(side=tk.LEFT, padx=5)
+        self.ngram_menu = ctk.CTkOptionMenu(cb_frame1, variable=self.ngram, values=["unigram", "bigram"], width=120)
+        self.ngram_menu.pack(side=tk.LEFT, padx=5)
         
         # Checkboxes row 2
         cb_frame2 = ctk.CTkFrame(proc_frame)
         cb_frame2.pack(fill=tk.X, pady=2)
-        ctk.CTkCheckBox(cb_frame2, text="Normalize plurals", variable=self.normalize_plurals).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(cb_frame2, text="Lematize", variable=self.lematize).pack(side=tk.LEFT, padx=5)
         ctk.CTkCheckBox(cb_frame2, text="Include numbers", variable=self.include_numbers).pack(side=tk.LEFT, padx=5)
         
         # Numeric inputs
@@ -534,9 +540,14 @@ class WordCloudGUI:
         # Export statistics
         export_frame = ctk.CTkFrame(self.advanced_frame)
         export_frame.pack(fill=tk.X, pady=5)
-        ctk.CTkCheckBox(export_frame, text="Export statistics (JSON/CSV)", variable=self.export_stats).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(export_frame, text="Export vocabulary (JSON/CSV)", variable=self.vocabulary).pack(side=tk.LEFT, padx=5)
         ctk.CTkLabel(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(export_frame, textvariable=self.stats_top_n, width=10).pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(export_frame, textvariable=self.vocabulary_top_n, width=10).pack(side=tk.LEFT, padx=5)
+        
+        # Save vocabulary button
+        vocab_frame = ctk.CTkFrame(self.advanced_frame)
+        vocab_frame.pack(fill=tk.X, pady=5)
+        ctk.CTkButton(vocab_frame, text="Save Vocabulary (Frequencies JSON)", command=self.on_save_vocabulary, width=200).pack(side=tk.LEFT, padx=5)
         
         # Status bar (at bottom of left column)
         status_frame = ctk.CTkFrame(scrollable_frame)
@@ -825,6 +836,12 @@ class WordCloudGUI:
                 except:
                     pass
             self.temp_output_file = None
+            # Clear cache when input file changes
+            self.cached_frequencies = None
+            self.cached_processing_hash = None
+            # Clear cache when input file changes
+            self.cached_frequencies = None
+            self.cached_processing_hash = None
     
     def _update_file_type_label(self):
         """Update file type label based on selected file."""
@@ -876,6 +893,35 @@ class WordCloudGUI:
                 self.output_label.configure(text=f"Saved: {Path(filename).name}")
                 self.status_text.set(f"Word cloud saved to: {filename}")
                 self.status_label.configure(text=f"Word cloud saved to: {filename}")
+                
+                # Export statistics if requested
+                if self.vocabulary.get() and self.last_frequencies:
+                    try:
+                        base_output = os.path.splitext(filename)[0]
+                        top_n = None
+                        try:
+                            top_n_str = self.vocabulary_top_n.get().strip()
+                            if top_n_str:
+                                top_n = int(top_n_str)
+                        except (ValueError, AttributeError):
+                            pass
+                        
+                        json_file, csv_file = export_statistics(
+                            frequencies=self.last_frequencies,
+                            base_output_file=base_output,
+                            top_n=top_n
+                        )
+                        messagebox.showinfo(
+                            "Success",
+                            f"Word cloud saved successfully!\n\nSaved to:\n{filename}\n\n"
+                            f"Vocabulary exported:\n{Path(json_file).name}\n{Path(csv_file).name}"
+                        )
+                    except Exception as e:
+                        messagebox.showwarning(
+                            "Statistics Export Warning",
+                            f"Word cloud saved successfully, but statistics export failed:\n{str(e)}"
+                        )
+                else:
                 messagebox.showinfo(
                     "Success",
                     f"Word cloud saved successfully!\n\nSaved to:\n{filename}"
@@ -884,6 +930,55 @@ class WordCloudGUI:
                 messagebox.showerror(
                     "Save Error",
                     f"Failed to save word cloud:\n{str(e)}"
+                )
+    
+    def on_save_vocabulary(self):
+        """Handle saving the processed vocabulary (frequencies) as JSON."""
+        if self.last_frequencies is None:
+            messagebox.showwarning(
+                "No Vocabulary Available",
+                "Please generate a word cloud first to create the vocabulary."
+            )
+            return
+        
+        # Suggest a default filename based on input file if available
+        initial_file = ""
+        if self.input_file.get():
+            input_path = Path(self.input_file.get())
+            initial_file = str(input_path.parent / f"{input_path.stem}_vocabulary.json")
+        else:
+            initial_file = "vocabulary.json"
+        
+        filename = filedialog.asksaveasfilename(
+            title="Save Vocabulary (Frequencies) As...",
+            defaultextension=".json",
+            initialfile=initial_file,
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
+        )
+        
+        if filename:
+            try:
+                import json
+                # Ensure .json extension
+                if not filename.endswith('.json'):
+                    filename = filename + '.json'
+                
+                # Sort by frequency (descending) for better readability
+                sorted_frequencies = dict(sorted(self.last_frequencies.items(), key=lambda x: x[1], reverse=True))
+                
+                # Write JSON file
+                with open(filename, 'w', encoding='utf-8') as f:
+                    json.dump(sorted_frequencies, f, indent=2, ensure_ascii=False)
+                
+                messagebox.showinfo(
+                    "Success",
+                    f"Vocabulary saved successfully!\n\nSaved to:\n{filename}\n\n"
+                    f"Total words: {len(sorted_frequencies)}"
+                )
+            except Exception as e:
+                messagebox.showerror(
+                    "Save Error",
+                    f"Failed to save vocabulary:\n{str(e)}"
                 )
     
     def _update_preset_mask_list(self):
@@ -1085,8 +1180,8 @@ class WordCloudGUI:
             config.min_word_length = self.min_word_length.get()
             config.include_stopwords = self.include_stopwords.get()
             config.case_sensitive = self.case_sensitive.get()
-            config.collocations = self.collocations.get()
-            config.normalize_plurals = self.normalize_plurals.get()
+            config.ngram = self.ngram.get()
+            config.lemmatize = self.lematize.get()
             config.include_numbers = self.include_numbers.get()
             
             # Set visual options
@@ -1120,6 +1215,31 @@ class WordCloudGUI:
             # Language (only for text files, not JSON)
             language = self.language.get() if not is_json_file(self.input_file.get()) else "english"
             
+            # Calculate hash of text processing options to determine if we need to reprocess
+            import hashlib
+            processing_options = {
+                'input_file': self.input_file.get(),
+                'language': language,
+                'lematize': config.lemmatize,
+                'ngram': config.ngram,
+                'include_stopwords': config.include_stopwords,
+                'case_sensitive': config.case_sensitive,
+                'min_word_length': config.min_word_length,
+                'max_words': config.max_words,
+                'include_numbers': config.include_numbers,
+            }
+            # Create hash of processing options
+            options_str = str(sorted(processing_options.items()))
+            current_hash = hashlib.md5(options_str.encode()).hexdigest()
+            
+            # Check if we can reuse cached frequencies
+            if (self.cached_frequencies is not None and 
+                self.cached_processing_hash == current_hash and
+                self.input_file.get() == processing_options['input_file']):
+                # Reuse cached frequencies - only visual options changed
+                frequencies = self.cached_frequencies
+            else:
+                # Need to reprocess text - processing options changed
             # Clean up previous temporary file if exists
             if self.temp_output_file and Path(self.temp_output_file).exists():
                 try:
@@ -1134,6 +1254,13 @@ class WordCloudGUI:
                 config=config,
                 clean_text=True
             )
+                
+                # Cache raw frequencies and hash for future use
+                self.cached_frequencies = frequencies
+                self.cached_processing_hash = current_hash
+            
+            # Store raw frequencies for later use (vocabulary export)
+            self.last_frequencies = frequencies
             
             # Generate word cloud to a temporary file for preview
             import tempfile
@@ -1141,9 +1268,12 @@ class WordCloudGUI:
             temp_fd, temp_path = tempfile.mkstemp(suffix='.png', prefix='wordcloud_', dir=None)
             os.close(temp_fd)  # Close file descriptor, we'll use the path
             
+            # Apply WordCloud-related filters (max_words, min_word_length, include_numbers)
+            filtered_frequencies = apply_wordcloud_filters(frequencies, config)
+            
             # Generate word cloud and save to temp file for preview
             self.generated_wordcloud = generate_word_cloud_from_frequencies(
-                frequencies=frequencies,
+                frequencies=filtered_frequencies,
                 config=config,
                 output_file=temp_path,
                 show=False  # Don't show matplotlib window in GUI

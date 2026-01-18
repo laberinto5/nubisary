@@ -2,27 +2,235 @@
 
 import re
 import os
+from collections import Counter
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from nltk.corpus import stopwords
-from wordcloud import WordCloud
+
+try:
+    import simplemma
+    SIMPLEMMA_AVAILABLE = True
+except ImportError:
+    SIMPLEMMA_AVAILABLE = False
 
 from src.config import PUNCTUATION
 
 
-def preprocess_text(text: str, case_sensitive: bool = False) -> str:
+def normalize_single_word(word: str, language: str) -> str:
     """
-    Preprocess text by removing punctuation and optionally lowercasing.
+    Normalize a single word to its singular form using lemmatization.
+    
+    Args:
+        word: Single word to normalize
+        language: Language code (e.g., 'spanish', 'english')
+        
+    Returns:
+        Normalized word (singular form)
+    """
+    if not SIMPLEMMA_AVAILABLE:
+        return word
+    
+    # Map language codes to simplemma language codes
+    lang_map = {
+        'spanish': 'es',
+        'english': 'en',
+        'french': 'fr',
+        'german': 'de',
+        'italian': 'it',
+        'portuguese': 'pt',
+    }
+    
+    simplemma_lang = lang_map.get(language.lower())
+    if simplemma_lang is None:
+        return word
+    
+    # Skip if word is too short or is a number
+    if len(word) < 2 or word.isdigit():
+        return word
+    
+    try:
+        # Use simplemma to get the lemma (singular form)
+        lemma = simplemma.lemmatize(word, lang=simplemma_lang)
+        
+        # Only replace if lemma is different and makes sense
+        if lemma and lemma.lower() != word.lower() and len(lemma) >= 2:
+            # Preserve original case if the word was capitalized
+            if word[0].isupper():
+                return lemma.capitalize()
+            return lemma
+    except Exception:
+        # If lemmatization fails, only use fallback for Spanish
+        if simplemma_lang == 'es':
+            word_lower = word.lower()
+            
+            # Handle common Spanish plural endings
+            if word_lower.endswith('es') and len(word_lower) > 4:
+                if word_lower.endswith('ces'):
+                    # luces -> luz, voces -> voz
+                    singular = word[:-3] + 'z'
+                    if len(singular) >= 3:
+                        return singular.capitalize() if word[0].isupper() else singular
+                elif word_lower.endswith('ies'):
+                    # países -> país, reyes -> rey
+                    if word_lower == 'países':
+                        return 'país' if word.islower() else 'País'
+                    singular = word[:-3] + 'y'
+                    if len(singular) >= 3:
+                        return singular.capitalize() if word[0].isupper() else singular
+                else:
+                    # mujeres -> mujer, casas -> casa
+                    singular = word[:-2]
+                    if len(singular) >= 3:
+                        return singular.capitalize() if word[0].isupper() else singular
+            elif word_lower.endswith('s') and len(word_lower) > 3:
+                # libros -> libro, casas -> casa
+                singular = word[:-1]
+                if len(singular) >= 3:
+                    return singular.capitalize() if word[0].isupper() else singular
+    
+    return word
+
+
+def normalize_plurals_with_lemmatization(text: str, language: str) -> str:
+    """
+    Lematize words to their base form using lemmatization.
+    
+    Uses simplemma library for lemmatization, which is a lightweight
+    and efficient library for multiple languages including Spanish.
+    
+    Args:
+        text: Input text with potential plural forms
+        language: Language code (e.g., 'spanish', 'english')
+        
+    Returns:
+        Text with plurals converted to singular using lemmatization
+    """
+    if not SIMPLEMMA_AVAILABLE:
+        # Fallback: return text unchanged if simplemma is not available
+        return text
+    
+    # Map language codes to simplemma language codes
+    # simplemma supports: es, en, fr, de, it, pt
+    lang_map = {
+        'spanish': 'es',
+        'english': 'en',
+        'french': 'fr',
+        'german': 'de',
+        'italian': 'it',
+        'portuguese': 'pt',
+    }
+    
+    simplemma_lang = lang_map.get(language.lower())
+    
+    # If language is not supported by simplemma, return text unchanged
+    if simplemma_lang is None:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(
+            f'Language "{language}" is not supported for plural normalization by simplemma. '
+            f'Supported languages: {", ".join(sorted(lang_map.keys()))}. '
+            f'Plural normalization will be skipped for this language.'
+        )
+        return text
+    
+    def lemmatize_word(match):
+        word = match.group(0)
+        original_word = word
+        
+        # Skip if word is too short or is a number
+        if len(word) < 2 or word.isdigit():
+            return original_word
+        
+        try:
+            # Use simplemma to get the lemma (singular form)
+            lemma = simplemma.lemmatize(word, lang=simplemma_lang)
+            
+            # Only replace if lemma is different and makes sense
+            # (simplemma may return the same word if it's already singular or unknown)
+            if lemma and lemma.lower() != word.lower() and len(lemma) >= 2:
+                # Preserve original case if the word was capitalized
+                if word[0].isupper():
+                    return lemma.capitalize()
+                return lemma
+        except Exception:
+            # If lemmatization fails, only use fallback for Spanish
+            # For other languages, simplemma should handle it, so if it fails, skip normalization
+            if simplemma_lang == 'es':
+                # Fallback for Spanish: handle common Spanish plural patterns manually
+                # This is only for words that simplemma might not recognize
+                word_lower = word.lower()
+                
+                # Handle common Spanish plural endings
+                if word_lower.endswith('es') and len(word_lower) > 4:
+                    # Try removing 'es' for common patterns
+                    if word_lower.endswith('ces'):
+                        # luces -> luz, voces -> voz
+                        singular = word[:-3] + 'z'
+                        if len(singular) >= 3:
+                            return singular.capitalize() if word[0].isupper() else singular
+                    elif word_lower.endswith('ies'):
+                        # países -> país, reyes -> rey
+                        if word_lower == 'países':
+                            return 'país' if word.islower() else 'País'
+                        singular = word[:-3] + 'y'
+                        if len(singular) >= 3:
+                            return singular.capitalize() if word[0].isupper() else singular
+                    else:
+                        # mujeres -> mujer, casas -> casa
+                        singular = word[:-2]
+                        if len(singular) >= 3:
+                            return singular.capitalize() if word[0].isupper() else singular
+                elif word_lower.endswith('s') and len(word_lower) > 3:
+                    # libros -> libro, casas -> casa
+                    singular = word[:-1]
+                    if len(singular) >= 3:
+                        return singular.capitalize() if word[0].isupper() else singular
+        
+        return original_word
+    
+    # Use word boundaries to match complete words
+    pattern = r'\b\w+\b'
+    result = re.sub(pattern, lemmatize_word, text)
+    
+    return result
+
+
+def preprocess_text(
+    text: str,
+    case_sensitive: bool = False,
+    include_numbers: bool = False
+) -> str:
+    """
+    Preprocess text by replacing punctuation with spaces and optionally lowercasing.
+    
+    All punctuation characters are replaced with spaces (not removed) to preserve
+    word boundaries. Multiple spaces are then normalized to single spaces.
     
     Args:
         text: Raw text content
         case_sensitive: If False, convert text to lowercase
+        include_numbers: Whether to keep numeric tokens (default: False)
         
     Returns:
         Preprocessed text
     """
-    # Remove punctuation
-    text_clean = "".join(char for char in text if char not in PUNCTUATION)
+    # Optionally remove any sequence that contains digits before punctuation handling
+    text_clean = text
+    if not include_numbers:
+        # Remove any non-space token that contains at least one digit
+        # Examples: covid19, covid-19, A4, 12:30, -14, 1-2
+        text_clean = re.sub(r'\S*\d\S*', ' ', text_clean)
+    
+    # Replace all punctuation characters with spaces
+    # This is safer than removing them, as it preserves word boundaries
+    for punct_char in PUNCTUATION:
+        text_clean = text_clean.replace(punct_char, ' ')
+    
+    # Normalize multiple spaces to single space
+    text_clean = re.sub(r'\s+', ' ', text_clean)
+    
+    # Strip leading/trailing spaces
+    text_clean = text_clean.strip()
     
     # Lowercase if not case sensitive
     if not case_sensitive:
@@ -35,51 +243,65 @@ def generate_word_count_from_text(
     text: str,
     language: str,
     include_stopwords: bool = False,
-    collocations: bool = False,
-    max_words: int = 200,
-    min_word_length: int = 0,
-    normalize_plurals: bool = False,
-    include_numbers: bool = False,
-    canvas_width: int = 400,
-    canvas_height: int = 200
+    ngram: str = "unigram",
+    include_numbers: bool = False
 ) -> Dict[str, float]:
     """
-    Generate word frequency dictionary from preprocessed text.
+    Generate word frequency dictionary from transformed text.
+    
+    This function assumes the text has already been fully transformed
+    (punctuation normalization, plural normalization, regex rules, etc.).
+    It only tokenizes and counts, with optional stopword filtering and
+    basic collocation handling.
     
     Args:
-        text: Preprocessed text content
+        text: Transformed text content
         language: Language code for stopwords
         include_stopwords: Whether to include stopwords
-        collocations: Whether to include collocations (bigrams)
-        max_words: Maximum number of words to include
-        min_word_length: Minimum word length
-        normalize_plurals: Whether to normalize plurals
-        include_numbers: Whether to include numbers
-        canvas_width: Canvas width (for WordCloud initialization)
-        canvas_height: Canvas height (for WordCloud initialization)
+        ngram: "unigram" or "bigram"
+        include_numbers: Whether to include numeric tokens in frequencies
         
     Returns:
         Dictionary mapping words to their frequencies
     """
-    # Create WordCloud instance for text processing
-    wordcloud = WordCloud(
-        width=canvas_width,
-        height=canvas_height,
-        collocations=collocations,
-        max_words=max_words,
-        min_word_length=min_word_length,
-        normalize_plurals=normalize_plurals,
-        include_numbers=include_numbers
-    )
+    # Tokenize on word boundaries (unicode-aware)
+    tokens = re.findall(r'\b\w+\b', text)
     
-    # Set stopwords if needed
+    # Filter stopwords if needed
     if not include_stopwords:
-        wordcloud.stopwords = set(stopwords.words(language))
+        stopword_set = set(stopwords.words(language))
+        tokens = [token for token in tokens if token not in stopword_set]
     
-    # Process text and generate word frequencies
-    word_count = wordcloud.process_text(text)
+    # Remove pure numeric tokens if numbers are not included
+    if not include_numbers:
+        tokens = [token for token in tokens if not token.isdigit()]
     
-    return word_count
+    # Build frequency dictionary based on n-gram mode
+    ngram = ngram.lower().strip()
+    if ngram not in {"unigram", "bigram"}:
+        raise ValueError(f'Invalid ngram value: {ngram}. Expected "unigram" or "bigram".')
+    
+    if ngram == "unigram":
+        counts = Counter(tokens)
+        return dict(counts)
+    
+    # Bigram mode: count adjacent pairs only (no unigrams)
+    if len(tokens) < 2:
+        return {}
+    
+    if include_numbers:
+        bigrams = [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
+    else:
+        bigrams = []
+        for i in range(len(tokens) - 1):
+            token_a = tokens[i]
+            token_b = tokens[i + 1]
+            # Skip bigrams that contain any digits in either token
+            if re.search(r'\d', token_a) or re.search(r'\d', token_b):
+                continue
+            bigrams.append(f"{token_a} {token_b}")
+    counts = Counter(bigrams)
+    return dict(counts)
 
 
 def normalize_spaces(text: str) -> str:

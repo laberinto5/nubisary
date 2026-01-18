@@ -11,7 +11,7 @@ from src.wordcloud_service import (
     WordCloudServiceError,
     process_text_to_frequencies
 )
-from src.wordcloud_generator import generate_word_cloud_from_frequencies
+from src.wordcloud_generator import generate_word_cloud_from_frequencies, apply_wordcloud_filters
 from src.statistics_exporter import export_statistics
 from src.file_handlers import convert_document_to_text_file, FileHandlerError
 from src.document_converter import is_convertible_document, UnsupportedFormatError
@@ -137,47 +137,47 @@ def generate(
     ),
     max_words: int = typer.Option(
         200,
-        '-M', '--max_words',
+        '-M', '--max-words',
         help='Maximum number of words to include in the word cloud (default: 200)'
     ),
     min_word_length: int = typer.Option(
         0,
-        '-L', '--min_word_length',
+        '-L', '--min-word-length',
         help='Minimum amount of chars in words included in the word cloud (default: 0)'
     ),
-    normalize_plurals: bool = typer.Option(
+    lematize: bool = typer.Option(
         False,
-        '-P', '--normalize_plurals',
-        help='Normalize plurals (default: False)'
+        '-P', '--lematize',
+        help='Lematize words (default: False)'
     ),
     include_numbers: bool = typer.Option(
         False,
-        '-N', '--include_numbers',
+        '-N', '--include-numbers',
         help='Include numbers (default: False)'
     ),
-    collocations: bool = typer.Option(
-        False,
-        '-C', '--collocations',
-        help='Include collocations (default: False)'
+    ngram: str = typer.Option(
+        "unigram",
+        '--ngram',
+        help='Tokenization mode for frequencies: "unigram" or "bigram" (default: unigram)'
     ),
     include_stopwords: bool = typer.Option(
         False,
-        '-W', '--include_stopwords',
+        '-W', '--include-stopwords',
         help='Include stopwords (default: False)'
     ),
     case_sensitive: bool = typer.Option(
         False,
-        '-U', '--case_sensitive',
+        '-U', '--case-sensitive',
         help='Case-sensitive word cloud (default: False)'
     ),
     canvas_width: int = typer.Option(
         800,
-        '-X', '--canvas_width',
+        '-X', '--canvas-width',
         help='Width of the word cloud canvas (default: 800)'
     ),
     canvas_height: int = typer.Option(
         600,
-        '-Y', '--canvas_height',
+        '-Y', '--canvas-height',
         help='Height of the word cloud canvas (default: 600)'
     ),
     no_show: bool = typer.Option(
@@ -188,22 +188,17 @@ def generate(
     no_clean_text: bool = typer.Option(
         False,
         '--no-clean-text',
-        help='Do not clean converted text (keep page numbers, excessive blank lines)'
+        help='Deprecated: document cleaning is always applied'
     ),
-    export_stats: bool = typer.Option(
+    vocabulary: bool = typer.Option(
         False,
-        '-S', '--export-stats',
-        help='Export word frequency statistics to JSON and CSV files'
+        '-V', '--vocabulary',
+        help='Export processed vocabulary (word frequencies) to JSON and CSV files'
     ),
-    stats_top_n: Optional[int] = typer.Option(
+    vocabulary_top_n: Optional[int] = typer.Option(
         None,
-        '--stats-top-n',
-        help='Export only top N words (default: all words). Example: --stats-top-n 20'
-    ),
-    stats_output: Optional[str] = typer.Option(
-        None,
-        '--stats-output',
-        help='Base filename for statistics files (auto-generate if not specified)'
+        '--vocabulary-top-n',
+        help='Export only top N words (default: all words). Example: --vocabulary-top-n 20'
     ),
     theme: Optional[str] = typer.Option(
         None,
@@ -306,8 +301,8 @@ def generate(
     python nubisary.py generate -i text.txt -l english -o output.png --theme soft,playroom
     
     \b
-    # Generate with statistics export (auto-generates filenames based on input)
-    python nubisary.py generate -i text.txt -l english --export-stats
+    # Generate with vocabulary export (auto-generates filenames based on input)
+    python nubisary.py generate -i text.txt -l english --vocabulary
     
     \b
     # Generate with custom colormap
@@ -318,16 +313,16 @@ def generate(
     python nubisary.py generate -i text.txt -l english --mask heart.png --contour-width 2 --contour-color red
     
     \b
-    # Generate from PDF (auto-converts to text) with statistics
-    python nubisary.py generate -i document.pdf -l english --export-stats
+    # Generate from PDF (auto-converts to text) with vocabulary export
+    python nubisary.py generate -i document.pdf -l english --vocabulary
     
     \b
-    # Generate with custom colors and statistics
-    python nubisary.py generate -i text.txt -l spanish -B white -F "#FF0000" --export-stats
+    # Generate with custom colors and vocabulary export
+    python nubisary.py generate -i text.txt -l spanish -B white -F "#FF0000" --vocabulary
     
     \b
-    # Generate from JSON frequencies with statistics
-    python nubisary.py generate -i frequencies.json -l english --export-stats
+    # Generate from JSON frequencies with vocabulary export
+    python nubisary.py generate -i frequencies.json -l english --vocabulary
     
     \b
     # Generate with excluded words/phrases (removes repeated headers from PDF conversion)
@@ -441,27 +436,35 @@ def generate(
             canvas_height=canvas_height,
             max_words=max_words,
             min_word_length=min_word_length,
-            normalize_plurals=normalize_plurals,
+            lemmatize=lematize,
             include_numbers=include_numbers,
             language=language,
             include_stopwords=include_stopwords,
             case_sensitive=case_sensitive,
-            collocations=collocations
+            ngram=ngram
         )
         
         # Process text once to get frequencies
+        if no_clean_text:
+            logger.warning('--no-clean-text is deprecated. Document cleaning is always applied.')
         frequencies = process_text_to_frequencies(
             input_file=input,
             language=language,
             config=base_config,
-            clean_text=not no_clean_text,
+            clean_text=True,
             exclude_words=exclude_words,
             exclude_case_sensitive=exclude_case_sensitive,
             regex_rule=regex_rule,
             regex_case_sensitive=regex_case_sensitive
         )
         
-        logger.info(f'Text processing complete. Generated {len(frequencies)} unique words.')
+        # Apply WordCloud-related filters (max_words, min_word_length, include_numbers)
+        filtered_frequencies = apply_wordcloud_filters(frequencies, base_config)
+        
+        logger.info(
+            f'Text processing complete. Generated {len(frequencies)} unique words '
+            f'({len(filtered_frequencies)} after WordCloud filters).'
+        )
         
         # ========================================================================
         # STEP 3: Generate word clouds for each theme (only image generation)
@@ -536,7 +539,7 @@ def generate(
                 canvas_height=canvas_height,
                 max_words=max_words,
                 min_word_length=min_word_length,
-                normalize_plurals=normalize_plurals,
+                lemmatize=lematize,
                 include_numbers=include_numbers,
                 background_color=bg_color,
                 font_color=fg_color,
@@ -550,14 +553,14 @@ def generate(
                 language=language,
                 include_stopwords=include_stopwords,
                 case_sensitive=case_sensitive,
-                collocations=collocations
+                ngram=ngram
             )
             
             # Generate word cloud from frequencies (only image generation, no text processing)
             show_this_one = show_clouds and idx == 0
             
             generate_word_cloud_from_frequencies(
-                frequencies=frequencies,
+                frequencies=filtered_frequencies,
                 config=theme_config,
                 output_file=theme_output,
                 show=show_this_one
@@ -565,22 +568,21 @@ def generate(
             
             logger.info(f'Word cloud saved to {theme_output}')
         
-        # Export statistics if requested (only once, for the first theme)
-        if export_stats:
-            # Auto-generate stats output filename if not provided
-            if stats_output is None:
-                if output:
-                    stats_output = os.path.splitext(output)[0]
-                else:
-                    stats_output = os.path.splitext(generate_output_filename(input, '.png'))[0]
+        # Export vocabulary if requested (only once, for the first theme)
+        if vocabulary:
+            # Auto-generate vocabulary output filename based on output or input
+            if output:
+                vocabulary_output = os.path.splitext(output)[0]
+            else:
+                vocabulary_output = os.path.splitext(generate_output_filename(input, '.png'))[0]
             
             # Export both JSON and CSV
             json_file, csv_file = export_statistics(
                 frequencies=frequencies,
-                base_output_file=stats_output,
-                top_n=stats_top_n
+                base_output_file=vocabulary_output,
+                top_n=vocabulary_top_n
             )
-            logger.info(f'Statistics exported: {json_file} and {csv_file}')
+            logger.info(f'Vocabulary exported: {json_file} and {csv_file}')
         
     except WordCloudServiceError as e:
         logger.error(f'Error generating word cloud: {e}')
@@ -690,14 +692,14 @@ def convert(
     no_clean_text: bool = typer.Option(
         False,
         '--no-clean-text',
-        help='Do not clean converted text (keep page numbers, excessive blank lines)'
+        help='Deprecated: document cleaning is always applied'
     )
 ):
     """
     Convert a document (PDF, DOC, or DOCX) to a plain text file.
     
     This allows you to review and edit the extracted text before generating a word cloud.
-    Note: Statistics export (--export-stats) is only available with the 'generate' command.
+    Note: Vocabulary export (--vocabulary) is only available with the 'generate' command.
     
     Examples:
     
@@ -710,8 +712,8 @@ def convert(
     python nubisary.py convert -i document.docx
     
     \b
-    # Then generate word cloud with statistics from the converted text
-    python nubisary.py generate -i document.txt -l english -o cloud.png --export-stats
+    # Then generate word cloud with vocabulary export from the converted text
+    python nubisary.py generate -i document.txt -l english -o cloud.png --vocabulary
     """
     try:
         # Check if file is convertible
@@ -723,7 +725,9 @@ def convert(
             raise typer.Exit(code=1)
         
         # Convert document to text file
-        output_file = convert_document_to_text_file(input, output, clean_text=not no_clean_text)
+        if no_clean_text:
+            logger.warning('--no-clean-text is deprecated. Document cleaning is always applied.')
+        output_file = convert_document_to_text_file(input, output, clean_text=True)
         logger.info(f'Document converted successfully: {output_file}')
         logger.info(f'You can now review/edit the text file before generating a word cloud.')
         

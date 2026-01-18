@@ -2,6 +2,7 @@
 
 import pytest
 from src.themes import Theme, get_theme, get_theme_names, list_themes, register_theme
+from src.custom_colormaps import is_colormap_registered
 from src.config import WordCloudConfig
 
 
@@ -124,184 +125,108 @@ class TestThemeRegistry:
         names = get_theme_names()
         assert isinstance(names, list)
         assert len(names) > 0
-        # Check that preset themes are included
-        assert "classic" in names
-        assert "vibrant" in names
+        # Check that custom preset themes are included
+        assert "playroom" in names
+        assert "jungle" in names
+        assert "high_contrast" in names
     
     def test_list_themes(self):
         """Test listing all themes."""
         themes = list_themes()
         assert isinstance(themes, dict)
         assert len(themes) > 0
-        assert "classic" in themes
-        assert isinstance(themes["classic"], Theme)
+        assert "playroom" in themes
+        assert isinstance(themes["playroom"], Theme)
 
 
 class TestPresetThemes:
     """Tests for preset themes."""
     
-    def test_classic_theme(self):
-        """Test classic theme."""
-        theme = get_theme("classic")
+    def test_playroom_theme(self):
+        """Test playroom theme."""
+        theme = get_theme("playroom")
         assert theme is not None
-        assert theme.background_color == "white"
-        assert theme.font_color == "black"
-        assert theme.colormap is None
-    
-    def test_vibrant_theme(self):
-        """Test vibrant theme."""
-        theme = get_theme("vibrant")
-        assert theme is not None
-        assert theme.background_color == "#1a1a1a"
-        assert theme.colormap == "viridis"
-        assert theme.font_color is None
-    
-    def test_ocean_theme(self):
-        """Test ocean theme."""
-        theme = get_theme("ocean")
-        assert theme is not None
-        assert theme.background_color == "#0a1929"
-        assert theme.colormap == "coolwarm"
-    
-    def test_sunset_theme(self):
-        """Test sunset theme."""
-        theme = get_theme("sunset")
-        assert theme is not None
-        assert theme.background_color == "#2d1b0e"
-        assert theme.colormap == "plasma"
-    
-    def test_minimal_theme(self):
-        """Test minimal theme."""
-        theme = get_theme("minimal")
-        assert theme is not None
-        assert theme.background_color == "white"
-        assert theme.font_color == "#666666"
-        assert theme.relative_scaling == 0.6
-        assert theme.prefer_horizontal == 0.95
-    
-    def test_dark_theme(self):
-        """Test dark theme."""
-        theme = get_theme("dark")
-        assert theme is not None
-        assert theme.background_color == "black"
-        assert theme.colormap == "Set3"
-    
-    def test_pastel_theme(self):
-        """Test pastel theme."""
-        theme = get_theme("pastel")
-        assert theme is not None
-        assert theme.background_color == "#f5f5f5"
-        assert theme.colormap == "Pastel1"
+        assert theme.background_color == "#ffffff"
+        assert theme.colormap == "crayons"
     
     def test_high_contrast_theme(self):
-        """Test high-contrast theme."""
-        theme = get_theme("high-contrast")
+        """Test high_contrast theme."""
+        theme = get_theme("high_contrast")
         assert theme is not None
-        assert theme.background_color == "white"
-        assert theme.font_color == "black"
-        assert theme.relative_scaling == 0.3  # More dramatic differences
-    
-    def test_inferno_theme(self):
-        """Test inferno theme."""
-        theme = get_theme("inferno")
-        assert theme is not None
-        assert theme.colormap == "inferno"
-        assert theme.background_color == "#0d0d0d"
-    
-    def test_magma_theme(self):
-        """Test magma theme."""
-        theme = get_theme("magma")
-        assert theme is not None
-        assert theme.colormap == "magma"
-        assert theme.background_color == "#0c0c0c"
+        assert theme.background_color == "#FFFFFF"
+        assert theme.colormap == "greys_dark"
     
     def test_spring_theme(self):
         """Test spring theme."""
         theme = get_theme("spring")
         assert theme is not None
-        assert theme.colormap == "spring"
-        assert theme.background_color == "#f0f8f0"
+        assert theme.background_color == "#1BA891"
+        assert theme.colormap == "pink_light"
     
     def test_summer_theme(self):
         """Test summer theme."""
         theme = get_theme("summer")
         assert theme is not None
-        assert theme.colormap == "summer"
-        assert theme.background_color == "#fff8e1"
+        assert theme.background_color == "#004697"
+        assert theme.colormap == "colorful_palette"
     
     def test_autumn_theme(self):
         """Test autumn theme."""
         theme = get_theme("autumn")
         assert theme is not None
-        assert theme.colormap == "autumn"
-        assert theme.background_color == "#fff3e0"
+        assert theme.background_color == "#5F2E0F"
+        assert theme.colormap == "goldens_dark"
     
     def test_winter_theme(self):
         """Test winter theme."""
         theme = get_theme("winter")
         assert theme is not None
-        assert theme.colormap == "winter"
-        assert theme.background_color == "#e3f2fd"
+        assert theme.background_color == "#6689AF"
+        assert theme.colormap == "blues_light"
     
-    def test_blues_theme(self):
-        """Test blues theme."""
-        theme = get_theme("blues")
+    def test_night_theme(self):
+        """Test night theme."""
+        theme = get_theme("night")
         assert theme is not None
-        assert theme.colormap == "Blues"
-        assert theme.background_color == "#e3f2fd"
+        assert theme.background_color == "#1A0000"
+        assert theme.colormap == "blue_green_dark"
     
-    def test_greens_theme(self):
-        """Test greens theme."""
-        theme = get_theme("greens")
+    def test_bombons_theme(self):
+        """Test bombons theme."""
+        theme = get_theme("bombons")
         assert theme is not None
-        assert theme.colormap == "Greens"
-        assert theme.background_color == "#e8f5e9"
-    
-    def test_reds_theme(self):
-        """Test reds theme."""
-        theme = get_theme("reds")
-        assert theme is not None
-        assert theme.colormap == "Reds"
-        assert theme.background_color == "#ffebee"
-    
-    def test_purples_theme(self):
-        """Test purples theme."""
-        theme = get_theme("purples")
-        assert theme is not None
-        assert theme.colormap == "Purples"
-        assert theme.background_color == "#f3e5f5"
-    
-    def test_spectral_theme(self):
-        """Test spectral theme."""
-        theme = get_theme("spectral")
-        assert theme is not None
-        assert theme.colormap == "Spectral"
-    
-    def test_set1_theme(self):
-        """Test set1 theme."""
-        theme = get_theme("set1")
-        assert theme is not None
-        assert theme.colormap == "Set1"
-    
-    def test_tab10_theme(self):
-        """Test tab10 theme."""
-        theme = get_theme("tab10")
-        assert theme is not None
-        assert theme.colormap == "tab10"
+        assert theme.background_color == "#311405"
+        assert theme.colormap == "crayons"
     
     def test_all_themes_registered(self):
         """Test that all themes are properly registered."""
         themes = list_themes()
-        # Should have at least 30+ themes
-        assert len(themes) >= 30
-        # Check some key themes exist
-        assert "classic" in themes
-        assert "vibrant" in themes
-        assert "inferno" in themes
-        assert "magma" in themes
-        assert "spring" in themes
-        assert "blues" in themes
-        assert "greens" in themes
-        assert "set1" in themes
-        assert "tab10" in themes
+        expected = {
+            "playroom", "jungle", "garden", "brazil", "woods", "fluorescent", "mint",
+            "stars", "lake", "river", "solarized", "office", "pinky", "neon",
+            "markers", "golden", "pharaon", "cadiz", "clouds", "strawberry",
+            "piruleta", "blood", "high_contrast", "soft", "grey", "elegance",
+            "gum", "sakura", "gossip", "halloween", "carrots", "joy",
+            "blackboard", "sauvage", "loretta", "old", "sober", "homely",
+            "spring", "summer", "autumn", "winter", "night", "day",
+            "radical", "bombons"
+        }
+        # Registry can include extra themes added by other tests
+        assert expected.issubset(set(themes.keys()))
+
+
+class TestCustomColormaps:
+    """Tests for custom colormaps registered for themes."""
+
+    def test_custom_colormaps_registered(self):
+        expected = {
+            "greens_dark", "greens_light", "blues_dark", "blues_bright", "blues_light",
+            "reds_dark", "reds_light", "goldens_dark", "goldens_light",
+            "greys_dark", "greys_light", "neon", "pastels", "grey_blue_dark",
+            "crayons", "pinkies", "pink_dark", "pink_light", "sakura_palette",
+            "pumpkins", "blue_ocre_grey", "blue_green_dark", "blue_green_vibrant",
+            "blue_green_light", "garden_with_flowers", "sober_colors", "colorful_palette"
+        }
+        for cmap in expected:
+            assert is_colormap_registered(cmap) is True
 
