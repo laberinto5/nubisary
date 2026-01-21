@@ -271,7 +271,8 @@ class TestProcessTextToFrequencies:
             replace_search="foo,bar",
             replace_with="baz",
             replace_mode="list",
-            replace_case_sensitive=False
+            replace_case_sensitive=False,
+            replace_stage="original"
         )
 
         assert result == {"foo": 1}
@@ -324,6 +325,53 @@ class TestProcessTextToFrequencies:
 
         assert result == {"foo": 1}
         mock_normalize.assert_not_called()
+
+    @patch('src.wordcloud_service.validate_input_file')
+    @patch('src.wordcloud_service.is_json_file', return_value=False)
+    @patch('src.wordcloud_service.is_convertible_document', return_value=False)
+    @patch('src.wordcloud_service.validate_language')
+    @patch('src.wordcloud_service.read_text_file')
+    @patch('src.wordcloud_service.apply_regex_transformations')
+    @patch('src.wordcloud_service.preprocess_text')
+    @patch('src.wordcloud_service.normalize_plurals_with_lemmatization')
+    @patch('src.wordcloud_service.generate_word_count_from_text')
+    def test_replacements_applied_on_processed_text(
+        self,
+        mock_generate_count,
+        mock_normalize,
+        mock_preprocess,
+        mock_apply_regex,
+        mock_read_text,
+        mock_validate_lang,
+        mock_is_doc,
+        mock_is_json,
+        mock_validate_file
+    ):
+        """Test replacements on processed text (after lemmatize)."""
+        mock_read_text.return_value = "RAW"
+        mock_preprocess.return_value = "PREPROC"
+        mock_normalize.return_value = "LEMMA"
+        mock_apply_regex.return_value = "REPLACED"
+        mock_generate_count.return_value = {"foo": 1}
+
+        config = WordCloudConfig(lemmatize=True, include_stopwords=True)
+
+        result = process_text_to_frequencies(
+            input_file="test.txt",
+            language="spanish",
+            config=config,
+            clean_text=True,
+            regex_rule="foo|bar",
+            regex_case_sensitive=False,
+            replace_stage="processed"
+        )
+
+        assert result == {"foo": 1}
+        mock_preprocess.assert_called_once_with("RAW", False, include_numbers=False)
+        mock_normalize.assert_called_once_with("PREPROC", "spanish")
+        assert mock_apply_regex.call_count == 1
+        assert mock_apply_regex.call_args[0][0] == "LEMMA"
+        assert mock_apply_regex.call_args[0][2] is False
         
         # Test with clean_text=False (still cleaned)
         generate_wordcloud(

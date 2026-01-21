@@ -94,6 +94,11 @@ Página (\d+)|P.\\1
 #### `--regex-case-sensitive`
 Make regex matching case-sensitive (default: case-insensitive).
 
+#### `--replace-stage`
+Choose where replacements are applied (literal and regex):
+- `original` (default): apply before preprocessing and lemmatization
+- `processed`: apply after lemmatization, right before frequency generation
+
 ## Output Options
 
 ### `-o, --output PATH`

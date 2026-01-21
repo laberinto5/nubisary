@@ -260,6 +260,11 @@ def generate(
         '--regex-case-sensitive',
         help='Make regex matching case-sensitive (default: case-insensitive)'
     ),
+    replace_stage: str = typer.Option(
+        "original",
+        '--replace-stage',
+        help='Where to apply replacements (literal and regex): "original" or "processed" (default: original)'
+    ),
     custom_theme: Optional[str] = typer.Option(
         None,
         '--custom-theme',
@@ -455,7 +460,8 @@ def generate(
             exclude_words=exclude_words,
             exclude_case_sensitive=exclude_case_sensitive,
             regex_rule=regex_rule,
-            regex_case_sensitive=regex_case_sensitive
+            regex_case_sensitive=regex_case_sensitive,
+            replace_stage=replace_stage
         )
         
         # Apply WordCloud-related filters (max_words, min_word_length, include_numbers)

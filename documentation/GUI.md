@@ -79,6 +79,9 @@ Use the **Text replacements** section to remove or replace text before counting 
 - **Replace**: replacement text (leave empty to remove)
 - **Mode**: Single word/phrase, Comma-separated list, or Regex
 - **Case-sensitive**: match case exactly
+- **Apply on**:
+  - **Original text** (default): before preprocessing/lemmatization
+  - **Processed text**: after lemmatization, right before frequencies
 
 **Examples:**
 - Remove a term: Search `author`, Replace *(empty)*

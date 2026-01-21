@@ -54,6 +54,9 @@ Apply literal or regex replacements before counting words:
   - **Comma-separated list**: Multiple words/phrases, all replaced by the same text
   - **Regex**: Pattern-based replacement (advanced)
 - **Case-sensitive**: Match case exactly
+- **Apply on**:
+  - **Original text** (default): before preprocessing/lemmatization
+  - **Processed text**: after lemmatization, right before frequencies
 
 ## Visual Customization
 

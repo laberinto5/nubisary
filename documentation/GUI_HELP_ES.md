@@ -54,6 +54,9 @@ Aplica reemplazos literales o regex antes de contar palabras:
   - **Lista separada por comas**: Varias palabras/frases, todas reemplazadas por el mismo texto
   - **Regex**: Reemplazo por patrón (avanzado)
 - **Sensible a mayúsculas**: Coincidir mayúsculas/minúsculas exactamente
+- **Aplicar en**:
+  - **Texto original** (por defecto): antes de preprocesar/lematizar
+  - **Texto procesado**: después de lematizar, justo antes de las frecuencias
 
 ## Personalización Visual
 

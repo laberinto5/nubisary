@@ -346,6 +346,7 @@ class WordCloudGUI:
         self.replace_search = tk.StringVar(value="")
         self.replace_with = tk.StringVar(value="")
         self.replace_mode = tk.StringVar(value="Single word/phrase")
+        self.replace_stage = tk.StringVar(value="Original text")
         self.replace_case_sensitive = tk.BooleanVar(value=False)
         
         # Export options
@@ -626,6 +627,16 @@ class WordCloudGUI:
             replace_mode_frame,
             text="Case-sensitive",
             variable=self.replace_case_sensitive
+        ).pack(side=tk.LEFT, padx=5)
+        
+        replace_stage_frame = ctk.CTkFrame(self.advanced_frame)
+        replace_stage_frame.pack(fill=tk.X, pady=2)
+        ctk.CTkLabel(replace_stage_frame, text="Apply on:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkOptionMenu(
+            replace_stage_frame,
+            variable=self.replace_stage,
+            values=["Original text", "Processed text"],
+            width=180
         ).pack(side=tk.LEFT, padx=5)
         
         # Export statistics
@@ -1316,6 +1327,11 @@ class WordCloudGUI:
                 "Comma-separated list": "list",
                 "Regex": "regex"
             }.get(replace_mode_label, "single")
+            replace_stage_label = self.replace_stage.get()
+            replace_stage = {
+                "Original text": "original",
+                "Processed text": "processed"
+            }.get(replace_stage_label, "original")
             processing_options = {
                 'input_file': self.input_file.get(),
                 'language': language,
@@ -1329,7 +1345,8 @@ class WordCloudGUI:
                 'replace_search': replace_search,
                 'replace_with': replace_with,
                 'replace_mode': replace_mode,
-                'replace_case_sensitive': self.replace_case_sensitive.get()
+                'replace_case_sensitive': self.replace_case_sensitive.get(),
+                'replace_stage': replace_stage
             }
             # Create hash of processing options
             options_str = str(sorted(processing_options.items()))
@@ -1359,7 +1376,8 @@ class WordCloudGUI:
                     replace_search=replace_search if replace_search else None,
                     replace_with=replace_with,
                     replace_mode=replace_mode,
-                    replace_case_sensitive=self.replace_case_sensitive.get()
+                    replace_case_sensitive=self.replace_case_sensitive.get(),
+                    replace_stage=replace_stage
                 )
                     
                 # Cache raw frequencies and hash for future use
