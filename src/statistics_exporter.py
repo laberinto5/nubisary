@@ -134,14 +134,10 @@ def export_statistics(
     Returns:
         Tuple of (json_file_path, csv_file_path)
     """
-    # Generate filenames
-    json_file = base_output_file.replace('.csv', '') + '_stats.json'
-    csv_file = base_output_file.replace('.json', '') + '_stats.csv'
-    
     # Ensure base name doesn't have extensions
     base_name = os.path.splitext(base_output_file)[0]
-    json_file = base_name + '_stats.json'
-    csv_file = base_name + '_stats.csv'
+    json_file = base_name + '_vocabulary.json'
+    csv_file = base_name + '_vocabulary.csv'
     
     # Export both formats
     json_path = export_statistics_json(frequencies, json_file, top_n=top_n)

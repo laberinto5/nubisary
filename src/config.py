@@ -5,11 +5,26 @@ from typing import Optional
 
 
 # Supported languages for NLTK stopwords
+# All languages with verified NLTK stopwords support are included
 LANGUAGES_FOR_NLTK = [
-    'english', 'spanish', 'portuguese', 'french', 'german', 'italian',
-    'russian', 'dutch', 'swedish', 'danish', 'norwegian', 'finnish',
-    'turkish', 'greek', 'arabic', 'chinese', 'japanese', 'korean',
-    'thai', 'hebrew', 'hindi', 'indonesian', 'vietnamese'
+    'arabic',       # 754 stopwords (العربية)
+    'chinese',      # 841 stopwords (中文)
+    'danish',       # 94 stopwords (dansk)
+    'dutch',        # 101 stopwords (Nederlands)
+    'english',      # 198 stopwords
+    'finnish',      # 235 stopwords (suomi)
+    'french',       # 157 stopwords (français)
+    'german',       # 232 stopwords (Deutsch)
+    'greek',        # 265 stopwords (Ελληνικά)
+    'hebrew',       # 221 stopwords (עברית)
+    'indonesian',   # 758 stopwords (Bahasa Indonesia)
+    'italian',      # 279 stopwords (italiano)
+    'norwegian',    # 176 stopwords (norsk)
+    'portuguese',   # 207 stopwords (português)
+    'russian',      # 151 stopwords (русский)
+    'spanish',      # 313 stopwords (español)
+    'swedish',      # 114 stopwords (svenska)
+    'turkish'       # 53 stopwords (Türkçe)
 ]
 
 # Valid color names for wordcloud
@@ -17,7 +32,8 @@ WORDCLOUD_COLORS = [
     'white', 'blue', 'yellow', 'green', 'red', 'grey', 'black', 'orange'
 ]
 
-# Punctuation characters to remove from text
+# Punctuation characters to replace with spaces in text preprocessing
+# All punctuation is replaced with spaces (not removed) to preserve word boundaries
 PUNCTUATION = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
 
 # Default canvas dimensions
@@ -42,7 +58,7 @@ class WordCloudConfig:
     # Word settings
     max_words: int = DEFAULT_MAX_WORDS
     min_word_length: int = DEFAULT_MIN_WORD_LENGTH
-    normalize_plurals: bool = False
+    lemmatize: bool = False
     include_numbers: bool = False
     
     # Color settings
@@ -64,7 +80,7 @@ class WordCloudConfig:
     language: Optional[str] = None
     include_stopwords: bool = False
     case_sensitive: bool = False
-    collocations: bool = False
+    ngram: str = "unigram"  # "unigram" or "bigram"
 
 
 @dataclass

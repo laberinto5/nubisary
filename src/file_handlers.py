@@ -78,7 +78,8 @@ def read_text_file(file_path: str, auto_convert: bool = True, clean_text: bool =
     # Check if file needs conversion
     if auto_convert and is_convertible_document(file_path):
         try:
-            return convert_document_to_text(file_path, clean_text=clean_text)
+            # Always apply document cleaning (page numbers/roman numerals/blank lines)
+            return convert_document_to_text(file_path, clean_text=True)
         except DocumentConversionError as e:
             raise FileHandlerError(f'Error converting document {file_path}: {e}')
     
@@ -142,7 +143,8 @@ def convert_document_to_text_file(
     
     try:
         # Convert document to text
-        text_content = convert_document_to_text(input_file, clean_text=clean_text)
+        # Always apply document cleaning (page numbers/roman numerals/blank lines)
+        text_content = convert_document_to_text(input_file, clean_text=True)
         
         # Generate output filename if not provided
         if output_file is None:

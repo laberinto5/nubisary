@@ -6,6 +6,7 @@ matplotlib>=3.5.0
 nltk>=3.7
 numpy>=1.21.0
 Pillow>=9.0.0
+simplemma>=0.9.1  # Lightweight lemmatization for multiple languages including Spanish
 
 # CLI interface
 typer>=0.9.0
@@ -15,6 +16,11 @@ pypdf>=3.0.0          # PDF text extraction
 python-docx>=1.0.0    # DOCX text extraction
 # Note: .doc format is not supported to avoid external dependencies
 # Users should convert .doc files to .docx or .txt first
+
+# GUI dependencies
+customtkinter>=5.2.0   # Modern GUI framework (replaces tkinter for visual components)
+tkcolorpicker2>=1.0    # Enhanced color picker with HSV/HSL interface (optional, has fallback to native colorchooser)
+# Note: tkinter comes with Python by default, still used for Menu, filedialog, messagebox, Canvas, Spinbox
 
 # Testing
 pytest>=7.0.0

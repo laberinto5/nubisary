@@ -79,7 +79,8 @@ def create_wordcloud_instance(config: WordCloudConfig) -> WordCloud:
         'background_color': config.background_color,
         'max_words': config.max_words,
         'min_word_length': config.min_word_length,
-        'normalize_plurals': config.normalize_plurals,
+        # Plural normalization is handled in text processing, not WordCloud
+        'normalize_plurals': False,
         'include_numbers': config.include_numbers,
         'relative_scaling': config.relative_scaling,
         'prefer_horizontal': config.prefer_horizontal
@@ -140,7 +141,51 @@ def generate_word_cloud_from_frequencies(
         plt.show()
     
     if output_file is not None:
+        # Check if file already exists and log a warning
+        import os
+        from src.logger import setup_logger
+        logger = setup_logger()
+        
+        if os.path.exists(output_file):
+            logger.info(f'Output file already exists: {output_file}. Overwriting with new word cloud.')
+        
         wordcloud.to_file(output_file)
     
     return wordcloud
+
+
+def apply_wordcloud_filters(
+    frequencies: Dict[str, float],
+    config: WordCloudConfig
+) -> Dict[str, float]:
+    """
+    Apply WordCloud-related filters to a frequency dictionary.
+    
+    These filters are visual/generation-related, not linguistic:
+    - min_word_length
+    - include_numbers
+    - max_words
+    
+    Args:
+        frequencies: Raw word frequencies (after text transformations)
+        config: WordCloud configuration for filters
+        
+    Returns:
+        Filtered frequency dictionary
+    """
+    # Apply min length and number filters
+    filtered = {}
+    for word, freq in frequencies.items():
+        if config.min_word_length and len(word) < config.min_word_length:
+            continue
+        if not config.include_numbers and word.isdigit():
+            continue
+        filtered[word] = freq
+    
+    # Apply max_words (top N by frequency)
+    if config.max_words and len(filtered) > config.max_words:
+        sorted_items = sorted(filtered.items(), key=lambda x: (-x[1], x[0]))
+        filtered = dict(sorted_items[:config.max_words])
+    
+    return filtered
 

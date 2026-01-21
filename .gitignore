@@ -60,3 +60,7 @@ dist/
 # Logs
 *.log
 
+# Windows Zone.Identifier files (metadata from downloaded files)
+*:Zone.Identifier
+*.Zone.Identifier
+
