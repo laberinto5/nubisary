@@ -223,6 +223,7 @@ class TestProcessTextToFrequencies:
     @patch('src.wordcloud_service.validate_language')
     @patch('src.wordcloud_service.read_text_file')
     @patch('src.wordcloud_service.remove_excluded_text')
+    @patch('src.wordcloud_service.apply_literal_replacements')
     @patch('src.wordcloud_service.apply_regex_transformations')
     @patch('src.wordcloud_service.preprocess_text')
     @patch('src.wordcloud_service.normalize_plurals_with_lemmatization')
@@ -233,6 +234,7 @@ class TestProcessTextToFrequencies:
         mock_normalize,
         mock_preprocess,
         mock_apply_regex,
+        mock_apply_literal,
         mock_remove_excluded,
         mock_read_text,
         mock_validate_lang,
@@ -240,9 +242,10 @@ class TestProcessTextToFrequencies:
         mock_is_json,
         mock_validate_file
     ):
-        """Test ordered pipeline: read -> exclude -> regex -> preprocess -> lemmatize -> count."""
+        """Test ordered pipeline: read -> exclude -> replace -> regex -> preprocess -> lemmatize -> count."""
         mock_read_text.return_value = "RAW"
         mock_remove_excluded.return_value = "EXCLUDED"
+        mock_apply_literal.return_value = "REPLACED"
         mock_apply_regex.return_value = "REGEX"
         mock_preprocess.return_value = "PREPROC"
         mock_normalize.return_value = "LEMMA"
@@ -264,12 +267,17 @@ class TestProcessTextToFrequencies:
             exclude_words="foo,bar",
             exclude_case_sensitive=False,
             regex_rule="foo|bar",
-            regex_case_sensitive=False
+            regex_case_sensitive=False,
+            replace_search="foo,bar",
+            replace_with="baz",
+            replace_mode="list",
+            replace_case_sensitive=False
         )
 
         assert result == {"foo": 1}
         mock_read_text.assert_called_once_with("test.txt", auto_convert=True, clean_text=True)
         mock_remove_excluded.assert_called_once_with("RAW", ["foo", "bar"], False)
+        mock_apply_literal.assert_called_once()
         mock_apply_regex.assert_called_once()
         mock_preprocess.assert_called_once_with("REGEX", False, include_numbers=False)
         mock_normalize.assert_called_once_with("PREPROC", "spanish")

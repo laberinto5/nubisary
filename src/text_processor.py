@@ -387,6 +387,57 @@ def remove_excluded_text(
     return '\n'.join(result_lines)
 
 
+def apply_literal_replacements(
+    text: str,
+    replacements: List[Tuple[str, str]],
+    case_sensitive: bool = False
+) -> str:
+    """
+    Apply literal (non-regex) replacements to text.
+    
+    Each replacement is matched as a whole word or an exact phrase.
+    Matching is case-sensitive or case-insensitive based on the flag.
+    
+    Args:
+        text: Input text
+        replacements: List of (search, replace) tuples
+        case_sensitive: If False, matching is case-insensitive (default: False)
+        
+    Returns:
+        Text with replacements applied (spaces normalized where matches occurred)
+    """
+    if not replacements:
+        return text
+    
+    lines = text.split('\n')
+    result_lines = []
+    
+    for line in lines:
+        normalized_line = normalize_spaces(line)
+        processed_line = normalized_line
+        
+        for search, replacement in replacements:
+            if not search.strip():
+                continue
+            
+            normalized_search = normalize_spaces(search.strip())
+            
+            if ' ' in normalized_search:
+                escaped_search = re.escape(normalized_search)
+                pattern = escaped_search
+            else:
+                escaped_search = re.escape(normalized_search)
+                pattern = r'\b' + escaped_search + r'\b'
+            
+            flags = 0 if case_sensitive else re.IGNORECASE
+            processed_line = re.sub(pattern, replacement, processed_line, flags=flags)
+        
+        processed_line = normalize_spaces(processed_line)
+        result_lines.append(processed_line)
+    
+    return '\n'.join(result_lines)
+
+
 def parse_exclude_words_argument(exclude_words_arg: Optional[str]) -> List[str]:
     """
     Parse the --exclude-words argument.

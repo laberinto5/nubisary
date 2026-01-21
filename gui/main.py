@@ -17,6 +17,7 @@ import threading
 import json
 import locale
 import os
+import re
 
 # Set appearance mode and color theme
 ctk.set_appearance_mode("dark")  # User prefers dark theme
@@ -203,9 +204,7 @@ class WordCloudGUI:
             if os.path.exists(help_path):
                 with open(help_path, 'r', encoding='utf-8') as f:
                     content = f.read()
-                # Simple markdown to plain text conversion (remove # headers, keep structure)
-                # For now, just display as-is (markdown is readable enough)
-                help_text.insert('1.0', content)
+                self._render_markdown(help_text, content)
             else:
                 error_msg = f"Help file not found: {help_path}\n\n"
                 if language == 'es':
@@ -233,6 +232,61 @@ class WordCloudGUI:
             close_text = "Close"
         
         ctk.CTkButton(button_frame, text=close_text, command=help_window.destroy).pack()
+
+    def _render_markdown(self, text_widget, content: str):
+        """Render a minimal subset of Markdown into the help text widget."""
+        text_widget.configure(state=tk.NORMAL)
+        text_widget.delete('1.0', tk.END)
+        
+        text_widget.tag_configure("h1", font=("TkDefaultFont", 16, "bold"))
+        text_widget.tag_configure("h2", font=("TkDefaultFont", 14, "bold"))
+        text_widget.tag_configure("h3", font=("TkDefaultFont", 12, "bold"))
+        text_widget.tag_configure("bold", font=("TkDefaultFont", 10, "bold"))
+        text_widget.tag_configure("code", font=("TkFixedFont", 10))
+        
+        in_code_block = False
+        lines = content.splitlines()
+        
+        for line in lines:
+            stripped = line.strip()
+            
+            if stripped.startswith("```"):
+                in_code_block = not in_code_block
+                text_widget.insert(tk.END, "\n")
+                continue
+            
+            if in_code_block:
+                text_widget.insert(tk.END, line + "\n", "code")
+                continue
+            
+            if line.startswith("# "):
+                text_widget.insert(tk.END, line[2:].strip() + "\n", "h1")
+                continue
+            if line.startswith("## "):
+                text_widget.insert(tk.END, line[3:].strip() + "\n", "h2")
+                continue
+            if line.startswith("### "):
+                text_widget.insert(tk.END, line[4:].strip() + "\n", "h3")
+                continue
+            
+            if stripped.startswith("- "):
+                line = "• " + stripped[2:]
+            elif re.match(r'^\d+\.\s+', stripped):
+                line = stripped
+            
+            self._insert_bold_text(text_widget, line)
+            text_widget.insert(tk.END, "\n")
+
+    def _insert_bold_text(self, text_widget, line: str):
+        """Insert text with **bold** markers into the widget."""
+        if not line:
+            return
+        parts = re.split(r'(\*\*.+?\*\*)', line)
+        for part in parts:
+            if part.startswith("**") and part.endswith("**") and len(part) > 4:
+                text_widget.insert(tk.END, part[2:-2], "bold")
+            else:
+                text_widget.insert(tk.END, part)
     
     def show_about(self):
         """Show about dialog."""
@@ -287,6 +341,12 @@ class WordCloudGUI:
         self.contour_color = tk.StringVar(value="")
         self.preset_font = tk.StringVar(value="Default")
         self.font_path = tk.StringVar(value="")
+        
+        # Advanced text replacements
+        self.replace_search = tk.StringVar(value="")
+        self.replace_with = tk.StringVar(value="")
+        self.replace_mode = tk.StringVar(value="Single word/phrase")
+        self.replace_case_sensitive = tk.BooleanVar(value=False)
         
         # Export options
         self.vocabulary = tk.BooleanVar(value=False)
@@ -536,6 +596,37 @@ class WordCloudGUI:
         font_path_label = ctk.CTkLabel(font_custom_frame, text="", width=40, text_color="gray")
         font_path_label.pack(side=tk.LEFT, padx=5)
         self.font_path_label = font_path_label  # Store reference
+        
+        # Text replacements
+        replace_label_frame = ctk.CTkFrame(self.advanced_frame)
+        replace_label_frame.pack(fill=tk.X, pady=5)
+        ctk.CTkLabel(replace_label_frame, text="Text replacements:", font=("TkDefaultFont", 9, "bold")).pack(side=tk.LEFT, padx=5)
+        
+        replace_frame = ctk.CTkFrame(self.advanced_frame)
+        replace_frame.pack(fill=tk.X, pady=2)
+        ctk.CTkLabel(replace_frame, text="Search:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(replace_frame, textvariable=self.replace_search, width=220).pack(side=tk.LEFT, padx=5)
+        
+        replace_with_frame = ctk.CTkFrame(self.advanced_frame)
+        replace_with_frame.pack(fill=tk.X, pady=2)
+        ctk.CTkLabel(replace_with_frame, text="Replace:").pack(side=tk.LEFT, padx=5)
+        ctk.CTkEntry(replace_with_frame, textvariable=self.replace_with, width=220).pack(side=tk.LEFT, padx=5)
+        
+        replace_mode_frame = ctk.CTkFrame(self.advanced_frame)
+        replace_mode_frame.pack(fill=tk.X, pady=2)
+        ctk.CTkLabel(replace_mode_frame, text="Mode:").pack(side=tk.LEFT, padx=5)
+        self.replace_mode_combo = ctk.CTkOptionMenu(
+            replace_mode_frame,
+            variable=self.replace_mode,
+            values=["Single word/phrase", "Comma-separated list", "Regex"],
+            width=180
+        )
+        self.replace_mode_combo.pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(
+            replace_mode_frame,
+            text="Case-sensitive",
+            variable=self.replace_case_sensitive
+        ).pack(side=tk.LEFT, padx=5)
         
         # Export statistics
         export_frame = ctk.CTkFrame(self.advanced_frame)
@@ -1217,6 +1308,14 @@ class WordCloudGUI:
             
             # Calculate hash of text processing options to determine if we need to reprocess
             import hashlib
+            replace_search = self.replace_search.get().strip()
+            replace_with = self.replace_with.get()
+            replace_mode_label = self.replace_mode.get()
+            replace_mode = {
+                "Single word/phrase": "single",
+                "Comma-separated list": "list",
+                "Regex": "regex"
+            }.get(replace_mode_label, "single")
             processing_options = {
                 'input_file': self.input_file.get(),
                 'language': language,
@@ -1227,6 +1326,10 @@ class WordCloudGUI:
                 'min_word_length': config.min_word_length,
                 'max_words': config.max_words,
                 'include_numbers': config.include_numbers,
+                'replace_search': replace_search,
+                'replace_with': replace_with,
+                'replace_mode': replace_mode,
+                'replace_case_sensitive': self.replace_case_sensitive.get()
             }
             # Create hash of processing options
             options_str = str(sorted(processing_options.items()))
@@ -1252,7 +1355,11 @@ class WordCloudGUI:
                     input_file=self.input_file.get(),
                     language=language,
                     config=config,
-                    clean_text=True
+                    clean_text=True,
+                    replace_search=replace_search if replace_search else None,
+                    replace_with=replace_with,
+                    replace_mode=replace_mode,
+                    replace_case_sensitive=self.replace_case_sensitive.get()
                 )
                     
                 # Cache raw frequencies and hash for future use
