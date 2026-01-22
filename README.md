@@ -43,28 +43,32 @@ python nubisary.py generate -i document.pdf -l english --theme vibrant
 python nubisary_gui.py
 ```
 
+**Web (Gradio, local):**
+```bash
+python app.py
+```
+
 ## Documentation
 
 - **[CLI Documentation](documentation/CLI.md)** - Complete guide to the command-line interface
 - **[GUI Documentation](documentation/GUI.md)** - Guide to the graphical user interface
+- **[Web App (Gradio) Deploy](documentation/GRADIO_WEB_DEPLOY.md)** - Local and Hugging Face deployment guide
 - **[Themes & Custom Themes](documentation/THEMES.md)** - Built-in themes and custom JSON themes
 - **[Text Processing Workflow](documentation/WORKFLOW.md)** - High-level flow and transformation steps
 - **[Packaging](documentation/PACKAGING.md)** - Build and packaging options
 - **[Performance](documentation/PERFORMANCE.md)** - Performance considerations and optimization
+
+## Web App (Hugging Face)
+
+The Gradio web app can be deployed to Hugging Face Spaces.
+Space: https://huggingface.co/spaces/laberintos/nubisary  
+The public app URL is shown in the Space once the build finishes.
 
 ## Requirements
 
 - Python 3.10+
 - See [requirements.txt](requirements.txt) for full dependency list
 
-## License
+## Notes
 
-[Add your license information here]
-
-## Contributing
-
-[Add your contribution guidelines here]
-
-## Support
-
-[Add your support information here]
+If you find an issue or have suggestions, please open an issue on GitHub.
