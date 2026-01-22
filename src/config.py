@@ -34,7 +34,7 @@ WORDCLOUD_COLORS = [
 
 # Punctuation characters to replace with spaces in text preprocessing
 # All punctuation is replaced with spaces (not removed) to preserve word boundaries
-PUNCTUATION = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+PUNCTUATION = '''!()-[]{};:'",<>./?@#$%^&*_~'''
 
 # Default canvas dimensions
 DEFAULT_CANVAS_WIDTH = 800

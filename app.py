@@ -21,6 +21,7 @@ from src.wordcloud_generator import (
     generate_word_cloud_from_frequencies,
 )
 from src.wordcloud_service import process_text_to_frequencies, WordCloudServiceError
+from src.validators import validate_language
 
 COMPACT_CSS = """
 .gradio-container {font-size: 14px;}
@@ -353,6 +354,9 @@ def generate_wordcloud(
             font_path=resolved_font,
         )
 
+        if not is_json_file(input_file):
+            validate_language(language_value, include_stopwords=config.include_stopwords)
+
         frequencies = process_text_to_frequencies(
             input_file=input_file,
             language=language_value,
@@ -401,7 +405,7 @@ def build_app() -> gr.Blocks:
     mask_names = ["None"] + list_mask_files(without_extension=True)
     font_names = ["Default"] + list_font_files(without_extension=True, with_display_names=True)
 
-    with gr.Blocks(title="Nubisary", css=COMPACT_CSS) as demo:
+    with gr.Blocks(title="Nubisary") as demo:
         gr.Markdown("## Nubisary - Word Cloud Generator")
 
         gr.Markdown("### Input")
@@ -629,11 +633,12 @@ def build_app() -> gr.Blocks:
         outputs = [output_image, vocab_json, vocab_csv, status]
         generate_btn.click(generate_wordcloud, inputs=inputs, outputs=outputs)
 
+    demo.css = COMPACT_CSS
     return demo
 
 
 app = build_app()
 
 if __name__ == "__main__":
-    app.launch(css=COMPACT_CSS)
+    app.launch()
 
