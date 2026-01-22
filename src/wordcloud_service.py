@@ -30,6 +30,7 @@ from src.text_processor import (
     normalize_plurals_with_lemmatization,
     generate_word_count_from_text,
     remove_excluded_text,
+    apply_literal_replacements,
     parse_exclude_words_argument,
     parse_regex_rule_argument,
     apply_regex_transformations
@@ -55,7 +56,12 @@ def process_text_to_frequencies(
     exclude_words: Optional[str] = None,
     exclude_case_sensitive: bool = False,
     regex_rule: Optional[str] = None,
-    regex_case_sensitive: bool = False
+    regex_case_sensitive: bool = False,
+    replace_search: Optional[str] = None,
+    replace_with: Optional[str] = None,
+    replace_mode: Optional[str] = None,
+    replace_case_sensitive: bool = False,
+    replace_stage: str = "original"
 ) -> Dict[str, float]:
     """
     Process input file (text, JSON, PDF, DOCX) and extract word frequencies.
@@ -70,6 +76,11 @@ def process_text_to_frequencies(
         exclude_case_sensitive: If True, exclude matching is case-sensitive (default: False)
         regex_rule: Optional regex rule or file path. Format: "pattern" or "pattern|replacement"
         regex_case_sensitive: If True, regex matching is case-sensitive (default: False)
+        replace_search: Optional search text for literal replacements (GUI only)
+        replace_with: Optional replacement text (empty string removes matches)
+        replace_mode: Optional mode: "single", "list", or "regex"
+        replace_case_sensitive: If True, replacement matching is case-sensitive (default: False)
+        replace_stage: Where to apply replacements: "original" or "processed" (default: original)
         
     Returns:
         Dictionary mapping words to their frequencies
@@ -106,13 +117,39 @@ def process_text_to_frequencies(
                     text = remove_excluded_text(text, excluded_items, exclude_case_sensitive)
                     logger.info('Excluded words/phrases removed from text')
             
-            # Apply regex transformations if specified
-            if regex_rule:
-                regex_rules = parse_regex_rule_argument(regex_rule)
+            def _apply_replacements(target_text: str) -> str:
+                # Apply literal replacements (GUI-only, non-regex)
+                if replace_search and replace_mode in {"single", "list"}:
+                    replacement_text = replace_with if replace_with is not None else ""
+                    if replace_mode == "list":
+                        items = [item.strip() for item in replace_search.split(',') if item.strip()]
+                    else:
+                        items = [replace_search.strip()]
+                    if items:
+                        replacements = [(item, replacement_text) for item in items]
+                        logger.info(f'Applying {len(replacements)} literal replacement(s) to text')
+                        target_text = apply_literal_replacements(target_text, replacements, replace_case_sensitive)
+                        logger.info('Literal replacements applied to text')
+                
+                # Build regex rules (GUI regex + CLI regex_rule)
+                regex_rules = []
+                if replace_search and replace_mode == "regex":
+                    replacement_text = replace_with if replace_with is not None else ""
+                    gui_rule = replace_search if replacement_text == "" else f"{replace_search}|{replacement_text}"
+                    regex_rules.extend(parse_regex_rule_argument(gui_rule))
+                if regex_rule:
+                    regex_rules.extend(parse_regex_rule_argument(regex_rule))
+                
+                # Apply regex transformations if specified
                 if regex_rules:
                     logger.info(f'Applying {len(regex_rules)} regex rule(s) to text')
-                    text = apply_regex_transformations(text, regex_rules, regex_case_sensitive)
+                    target_text = apply_regex_transformations(target_text, regex_rules, regex_case_sensitive)
                     logger.info('Regex transformations applied to text')
+                
+                return target_text
+
+            if replace_stage == "original":
+                text = _apply_replacements(text)
             
             text_processed = preprocess_text(
                 text,
@@ -123,6 +160,9 @@ def process_text_to_frequencies(
             # Apply language-dependent transformations (lemmatization)
             if config.lemmatize:
                 text_processed = normalize_plurals_with_lemmatization(text_processed, language)
+            
+            if replace_stage == "processed":
+                text_processed = _apply_replacements(text_processed)
             
             # Generate word frequencies
             frequencies = generate_word_count_from_text(

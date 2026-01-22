@@ -33,31 +33,6 @@ The language setting helps remove common words (like "the", "a", "and" in Englis
 
 ## Text Processing Options
 
-### Exclude Words/Phrases
-
-Remove specific words or phrases from your word cloud:
-
-- **Direct input**: Enter words separated by commas (e.g., "Title, Author Name")
-- **From file**: Click "Browse..." to select a file with one word/phrase per line
-
-**Example file content:**
-```
-Book Title
-Author Name
-Collection Name
-```
-
-### Regex Rules (Advanced)
-
-For advanced text filtering, use regular expressions:
-
-- **Single rule**: Enter a pattern or `pattern|replacement`
-- **From file**: Click "Browse..." to select a file with one rule per line
-
-**Examples:**
-- Remove page headers: `^Page \d+`
-- Replace format: `Page (\d+)|P.\\1`
-
 ### Processing Options
 
 - **Include stopwords**: Keep common words (usually unchecked)
@@ -67,6 +42,21 @@ For advanced text filtering, use regular expressions:
 - **Include numbers**: Keep numeric values in the word cloud
 - **Min word length**: Minimum characters per word (default: 0)
 - **Max words**: Maximum number of words to display (default: 200)
+
+### Text Replacements
+
+Apply literal or regex replacements before counting words:
+
+- **Search**: The word/phrase (or regex pattern if Regex is selected)
+- **Replace**: The replacement text (leave empty to remove matches)
+- **Mode**:
+  - **Single word/phrase**: One exact word or phrase
+  - **Comma-separated list**: Multiple words/phrases, all replaced by the same text
+  - **Regex**: Pattern-based replacement (advanced)
+- **Case-sensitive**: Match case exactly
+- **Apply on**:
+  - **Original text** (default): before preprocessing/lemmatization
+  - **Processed text**: after lemmatization, right before frequencies
 
 ## Visual Customization
 
@@ -174,7 +164,7 @@ Export word frequency data:
 
 ## Keyboard Shortcuts
 
-- **F1**: Open this help manual (coming soon)
+- **F1**: Open this help manual
 - **Ctrl+O**: Open input file (coming soon)
 - **Ctrl+S**: Save word cloud (coming soon)
 
@@ -185,5 +175,5 @@ For detailed documentation, visit the project repository or check the CLI docume
 ---
 
 **Version**: 1.0  
-**Last Updated**: January 2025
+**Last Updated**: January 2026
 

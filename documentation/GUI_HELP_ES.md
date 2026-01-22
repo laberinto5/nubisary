@@ -33,31 +33,6 @@ La configuración de idioma ayuda a eliminar palabras comunes (como "el", "la", 
 
 ## Opciones de Procesamiento de Texto
 
-### Excluir Palabras/Frases
-
-Elimina palabras o frases específicas de tu nube de palabras:
-
-- **Entrada directa**: Ingresa palabras separadas por comas (ej: "Título, Nombre del Autor")
-- **Desde archivo**: Haz clic en "Examinar..." para seleccionar un archivo con una palabra/frase por línea
-
-**Ejemplo de contenido del archivo:**
-```
-Título del Libro
-Nombre del Autor
-Nombre de la Colección
-```
-
-### Reglas Regex (Avanzado)
-
-Para filtrado avanzado de texto, usa expresiones regulares:
-
-- **Regla única**: Ingresa un patrón o `patrón|reemplazo`
-- **Desde archivo**: Haz clic en "Examinar..." para seleccionar un archivo con una regla por línea
-
-**Ejemplos:**
-- Eliminar encabezados de página: `^Página \d+`
-- Reemplazar formato: `Página (\d+)|P.\\1`
-
 ### Opciones de Procesamiento
 
 - **Incluir palabras vacías**: Mantener palabras comunes (generalmente desmarcado)
@@ -67,6 +42,21 @@ Para filtrado avanzado de texto, usa expresiones regulares:
 - **Incluir números**: Mantener valores numéricos en la nube de palabras
 - **Longitud mínima de palabra**: Mínimo de caracteres por palabra (por defecto: 0)
 - **Máximo de palabras**: Número máximo de palabras a mostrar (por defecto: 200)
+
+### Reemplazos de Texto
+
+Aplica reemplazos literales o regex antes de contar palabras:
+
+- **Buscar**: La palabra/frase (o patrón regex si se elige Regex)
+- **Reemplazar**: El texto de reemplazo (dejar vacío para eliminar)
+- **Modo**:
+  - **Palabra/frase única**: Una palabra o frase exacta
+  - **Lista separada por comas**: Varias palabras/frases, todas reemplazadas por el mismo texto
+  - **Regex**: Reemplazo por patrón (avanzado)
+- **Sensible a mayúsculas**: Coincidir mayúsculas/minúsculas exactamente
+- **Aplicar en**:
+  - **Texto original** (por defecto): antes de preprocesar/lematizar
+  - **Texto procesado**: después de lematizar, justo antes de las frecuencias
 
 ## Personalización Visual
 
@@ -174,7 +164,7 @@ Exporta datos de frecuencia de palabras:
 
 ## Atajos de Teclado
 
-- **F1**: Abrir este manual de ayuda (próximamente)
+- **F1**: Abrir este manual de ayuda
 - **Ctrl+O**: Abrir archivo de entrada (próximamente)
 - **Ctrl+S**: Guardar nube de palabras (próximamente)
 
@@ -185,5 +175,5 @@ Para documentación detallada, visita el repositorio del proyecto o consulta la 
 ---
 
 **Versión**: 1.0  
-**Última Actualización**: Enero 2025
+**Última Actualización**: Enero 2026
 

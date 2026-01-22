@@ -47,11 +47,9 @@ python nubisary_gui.py
 
 - **[CLI Documentation](documentation/CLI.md)** - Complete guide to the command-line interface
 - **[GUI Documentation](documentation/GUI.md)** - Guide to the graphical user interface
-- **[Themes](documentation/THEMES.md)** - Full documentation of all preset themes (38+ themes)
-- **[Custom Themes](documentation/CUSTOM_THEMES.md)** - Create and use custom themes with custom colormaps
-- **[Defining Custom Themes](documentation/DEFINING_CUSTOM_THEMES.md)** - Practical guide to define your own themes
-- **[Build Options](documentation/BUILD_OPTIONS.md)** - Building and packaging options
-- **[Packaging](documentation/PACKAGING.md)** - Creating standalone executables
+- **[Themes & Custom Themes](documentation/THEMES.md)** - Built-in themes and custom JSON themes
+- **[Text Processing Workflow](documentation/WORKFLOW.md)** - High-level flow and transformation steps
+- **[Packaging](documentation/PACKAGING.md)** - Build and packaging options
 - **[Performance](documentation/PERFORMANCE.md)** - Performance considerations and optimization
 
 ## Requirements

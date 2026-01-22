@@ -71,37 +71,22 @@ The language is used for:
 
 ### 3. Text Processing Options
 
-#### Exclude Words/Phrases
+#### Text Replacements
 
-Use the **Exclude Words** section to remove specific words or phrases:
+Use the **Text replacements** section to remove or replace text before counting words:
 
-- **Single word or list**: Enter words separated by commas
-- **From file**: Click "Browse..." to select a file with one word/phrase per line
-
-**Example:**
-```
-Título del Libro, Autor Nombre
-```
-
-Or create a file `excluded.txt`:
-```
-Título del Libro
-Autor Nombre
-Colección de Poesía
-```
-
-#### Regex Rules (Advanced)
-
-For advanced text filtering, use **Regex Rules**:
-
-- **Single rule**: Enter a pattern or `pattern|replacement`
-- **From file**: Click "Browse..." to select a file with one rule per line
+- **Search**: word/phrase, a comma-separated list, or regex pattern
+- **Replace**: replacement text (leave empty to remove)
+- **Mode**: Single word/phrase, Comma-separated list, or Regex
+- **Case-sensitive**: match case exactly
+- **Apply on**:
+  - **Original text** (default): before preprocessing/lemmatization
+  - **Processed text**: after lemmatization, right before frequencies
 
 **Examples:**
-- Remove page headers: `^Página \d+`
-- Replace format: `Página (\d+)|P.\\1`
-
-**See [CLI Documentation](CLI.md) for detailed regex syntax.**
+- Remove a term: Search `author`, Replace *(empty)*
+- Normalize terms: Search `colour,color`, Replace `color`
+- Regex: Search `^Página \d+`, Replace *(empty)*
 
 ### 4. Visual Settings
 
@@ -196,13 +181,13 @@ If you want the processed vocabulary with frequencies:
 ### Working with PDFs/DOCX
 
 1. **Convert first** (optional): Use the `convert` command in CLI to review the text first
-2. **Check text cleaning**: The GUI automatically cleans converted text unless disabled
-3. **Exclude headers**: Use "Exclude Words" to remove repeated page headers
+2. **Text cleaning**: The GUI always cleans converted text
+3. **Remove headers**: Use Text replacements (Regex mode) to remove repeated headers
 
 ### Text Filtering Best Practices
 
-1. **Start simple**: Use "Exclude Words" for basic filtering
-2. **Use regex for complex patterns**: Use "Regex Rules" for advanced filtering
+1. **Start simple**: Use text replacements for basic filtering
+2. **Use regex for complex patterns**: Switch Mode to Regex
 3. **Test with small files first**: Verify your filters work correctly before processing large documents
 
 ### Visual Customization

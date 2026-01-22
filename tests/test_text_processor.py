@@ -8,6 +8,7 @@ from src.text_processor import (
     generate_word_count_from_text,
     normalize_spaces,
     remove_excluded_text,
+    apply_literal_replacements,
     parse_exclude_words_argument,
     parse_regex_rule_argument,
     apply_regex_transformations,
@@ -283,6 +284,30 @@ class TestRemoveExcludedText:
         result = remove_excluded_text(text, ["", "   ", "hello"], case_sensitive=False)
         assert "hello" not in result.lower()
         assert "world" in result.lower()
+
+
+class TestApplyLiteralReplacements:
+    """Tests for apply_literal_replacements function."""
+    
+    def test_single_word_replace(self):
+        """Replace a single word (case-insensitive)."""
+        text = "Hello world hello"
+        result = apply_literal_replacements(text, [("hello", "hi")], case_sensitive=False)
+        assert result.lower() == "hi world hi"
+    
+    def test_list_replace_same_word(self):
+        """Replace multiple terms with the same replacement."""
+        text = "casa hogar vivienda"
+        replacements = [("casa", "hogar"), ("vivienda", "hogar")]
+        result = apply_literal_replacements(text, replacements, case_sensitive=False)
+        assert result.lower() == "hogar hogar hogar"
+    
+    def test_remove_phrase(self):
+        """Remove a phrase by using empty replacement."""
+        text = "This is a test. This is a test again."
+        replacements = [("this is a test", "")]
+        result = apply_literal_replacements(text, replacements, case_sensitive=False)
+        assert "this is a test" not in result.lower()
 
 
 class TestParseExcludeWordsArgument:

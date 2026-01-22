@@ -36,7 +36,7 @@ python nubisary.py generate -i text.txt -l english --theme vibrant
 ### Text Processing Options
 
 #### `--no-clean-text`
-Disable automatic text cleaning when converting documents. By default, page numbers and excessive blank lines are removed.
+Deprecated. Document cleaning is always applied when converting PDF/DOCX (page numbers and chapter markers are removed).
 
 #### `-ew, --exclude-words TEXT`
 Exclude specific words or phrases from the text before processing.
@@ -93,6 +93,11 @@ Página (\d+)|P.\\1
 
 #### `--regex-case-sensitive`
 Make regex matching case-sensitive (default: case-insensitive).
+
+#### `--replace-stage`
+Choose where replacements are applied (literal and regex):
+- `original` (default): apply before preprocessing and lemmatization
+- `processed`: apply after lemmatization, right before frequency generation
 
 ## Output Options
 
@@ -228,7 +233,7 @@ Minimum character length for words included in the word cloud (default: 0).
 Lematize words before generating the word cloud.
 
 ### `-N, --include-numbers`
-Include numbers in the word cloud (default: numbers are excluded).
+Include numbers in the word cloud (default: numbers are excluded). When disabled, any token containing digits is removed.
 
 ### `-W, --include-stopwords`
 Include stopwords (default: stopwords are filtered out).
@@ -272,7 +277,7 @@ python nubisary.py convert [OPTIONS]
 
 **Optional Options:**
 - `-o, --output PATH`: Output text file path (default: input filename with `.txt` extension)
-- `--no-clean-text`: Do not clean converted text
+- `--no-clean-text`: Deprecated (cleaning is always applied)
 
 **Example:**
 ```bash
@@ -328,13 +333,14 @@ python nubisary.py generate -i text.txt -l english --colormap plasma --backgroun
 Understanding the processing order helps you use options effectively:
 
 1. **Document Conversion** (if PDF/DOCX)
-2. **Text Cleaning** (remove page numbers, excessive blank lines) - unless `--no-clean-text`
+2. **Text Cleaning** (page/chapter numbers, extra blank lines)
 3. **Word/Phrase Exclusion** (`--exclude-words`)
 4. **Regex Transformations** (`--regex-rule`) - applied in order
-5. **Text Preprocessing** (remove punctuation, lowercase if not case-sensitive)
-6. **Word Frequency Generation** (with language-specific stopwords)
-7. **Word Cloud Generation** (with visual settings)
-8. **Vocabulary Export** (if `--vocabulary`)
+5. **Text Preprocessing** (punctuation → spaces, spacing, casing; digit tokens removed if disabled)
+6. **Lematize** (if enabled)
+7. **Word Frequency Generation** (unigram or bigram)
+8. **Word Cloud Generation** (visual settings + filters)
+9. **Vocabulary Export** (if `--vocabulary`)
 
 ## Error Handling
 
