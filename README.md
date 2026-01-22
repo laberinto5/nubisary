@@ -69,14 +69,6 @@ The public app URL is shown in the Space once the build finishes.
 - Python 3.10+
 - See [requirements.txt](requirements.txt) for full dependency list
 
-## License
+## Notes
 
-[Add your license information here]
-
-## Contributing
-
-[Add your contribution guidelines here]
-
-## Support
-
-[Add your support information here]
+If you find an issue or have suggestions, please open an issue on GitHub.

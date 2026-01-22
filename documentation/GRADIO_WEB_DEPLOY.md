@@ -30,4 +30,5 @@ The public app URL appears in the Space UI after a successful build.
 
 - The entrypoint for Gradio Spaces is `app.py` by default.
 - Keep the app light and avoid heavy downloads at runtime.
+- This Space is synced from the GitHub repository; GitHub is the single source of truth.
 
