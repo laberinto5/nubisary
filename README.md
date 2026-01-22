@@ -1,3 +1,14 @@
+---
+title: Nubisary
+emoji: ☁️
+colorFrom: blue
+colorTo: indigo
+sdk: gradio
+sdk_version: "6.3.0"
+app_file: app.py
+pinned: false
+---
+
 # Nubisary
 
 **Nubisary** is a powerful and flexible word cloud generator that creates beautiful word clouds from text, PDF, DOCX, or JSON files. It offers both command-line and graphical interfaces, making it accessible for users of all technical levels.

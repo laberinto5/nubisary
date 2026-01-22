@@ -13,7 +13,7 @@ jobs:
         with:
           fetch-depth: 0
           lfs: true
-      - name: Push to Hugging Face Space
+      - name: Sync to Hugging Face Space (API upload)
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           HF_USERNAME: ${{ vars.HF_USERNAME }}
@@ -23,5 +23,68 @@ jobs:
             echo "Missing required config. Set secrets.HF_TOKEN and vars.HF_USERNAME / vars.HF_SPACE."
             exit 1
           fi
-          git push --force https://$HF_USERNAME:$HF_TOKEN@huggingface.co/spaces/$HF_USERNAME/$HF_SPACE main
+          python -m pip install --upgrade pip huggingface_hub
+          python - <<'PY'
+          import os
+          import fnmatch
+          from huggingface_hub import HfApi
+
+          token = os.environ["HF_TOKEN"]
+          username = os.environ["HF_USERNAME"]
+          space = os.environ["HF_SPACE"]
+          repo_id = f"{username}/{space}"
+
+          allow_patterns = [
+              "app.py",
+              "requirements.txt",
+              "README.md",
+              "src/**",
+              "samples/**",
+              "documentation/GRADIO_WEB_DEPLOY.md",
+          ]
+          protected_files = {".gitattributes", ".gitignore"}
+
+          def _matches(path: str, patterns: list[str]) -> bool:
+              return any(fnmatch.fnmatch(path, pattern) for pattern in patterns)
+
+          # Build local file list that should exist in the Space
+          desired_files = set()
+          for root, _, files in os.walk("."):
+              for file_name in files:
+                  rel_path = os.path.relpath(os.path.join(root, file_name), ".")
+                  rel_path = rel_path.replace(os.sep, "/")
+                  if _matches(rel_path, allow_patterns):
+                      desired_files.add(rel_path)
+
+          api = HfApi(token=token)
+          # Delete remote files that are not in desired set (keep protected)
+          remote_files = api.list_repo_files(repo_id=repo_id, repo_type="space")
+          to_delete = [
+              path for path in remote_files
+              if path not in desired_files and path not in protected_files
+          ]
+          if to_delete:
+              api.delete_files(
+                  repo_id=repo_id,
+                  repo_type="space",
+                  delete_patterns=to_delete,
+                  commit_message="Sync: remove files not in GitHub source",
+              )
+
+          api.upload_folder(
+              repo_id=repo_id,
+              repo_type="space",
+              folder_path=".",
+              path_in_repo=".",
+              allow_patterns=[
+                  "app.py",
+                  "requirements.txt",
+                  "README.md",
+                  "src/**",
+                  "samples/**",
+                  "documentation/GRADIO_WEB_DEPLOY.md",
+              ],
+              ignore_patterns=[".git/**", ".github/**"],
+          )
+          PY
 
