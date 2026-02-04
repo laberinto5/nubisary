@@ -333,18 +333,15 @@ def generate_wordcloud(
     contour_color: str,
     font_choice: str,
     font_file: Optional[str],
-    export_vocab: bool,
-    vocab_top_n: str,
-    export_report: bool,
+    # Note: No export flags needed - Gradio always generates all outputs
 ) -> Tuple[
-    Optional[object],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    Optional[str],
-    str,
+    Optional[object],  # image
+    Optional[str],  # vocab_json
+    Optional[str],  # report_pdf_en
+    Optional[str],  # report_pdf_es
+    Optional[str],  # report_txt_en
+    Optional[str],  # report_txt_es
+    str,  # status
 ]:
     if not input_file:
         raise gr.Error("Please upload an input file.")
@@ -408,135 +405,52 @@ def generate_wordcloud(
         image = wordcloud.to_image()
 
         vocab_json = None
-        vocab_csv = None
         report_txt_en = None
         report_txt_es = None
         report_pdf_en = None
         report_pdf_es = None
 
-        if export_vocab:
-            top_n = _parse_top_n(vocab_top_n)
-            temp_dir = tempfile.mkdtemp(prefix="nubisary_vocab_")
-            base_output = os.path.join(temp_dir, "vocabulary")
-            vocab_json, vocab_csv = export_statistics(
-                frequencies=frequencies,
-                base_output_file=base_output,
-                top_n=top_n,
-            )
-            status = "Word cloud generated. Vocabulary exported."
+        # Always export vocabulary JSON
+        temp_dir_vocab = tempfile.mkdtemp(prefix="nubisary_vocab_")
+        base_output_vocab = os.path.join(temp_dir_vocab, "vocabulary")
+        vocab_json, _ = export_statistics(
+            frequencies=frequencies,
+            base_output_file=base_output_vocab,
+        )
 
-        if export_report:
-            temp_dir = tempfile.mkdtemp(prefix="nubisary_report_")
-            report_base = os.path.join(temp_dir, "report")
-            raw_text = None
-            bigram_frequencies = None
-            top_terms_override = None
-            top_terms_note = None
-            token_stats = None
-            comparison_frequencies = None
-            comparison_reason = None
+        # Always generate reports
+        temp_dir = tempfile.mkdtemp(prefix="nubisary_report_")
+        report_base = os.path.join(temp_dir, "report")
+        raw_text = None
+        bigram_frequencies = None
+        top_terms_override = None
+        top_terms_note = None
+        token_stats = None
+        comparison_frequencies = None
+        comparison_reason = None
 
-            if not is_json_file(input_file):
-                raw_text = read_text_file(input_file, auto_convert=True, clean_text=False)
-                token_stats = []
-                for lemma_value in (False, True):
-                    for stop_value in (True, False):
-                        token_config = WordCloudConfig(
-                            canvas_width=config.canvas_width,
-                            canvas_height=config.canvas_height,
-                            max_words=config.max_words,
-                            min_word_length=config.min_word_length,
-                            relative_scaling=config.relative_scaling,
-                            prefer_horizontal=config.prefer_horizontal,
-                            include_stopwords=stop_value,
-                            include_numbers=config.include_numbers,
-                            case_sensitive=config.case_sensitive,
-                            lemmatize=lemma_value,
-                            ngram="unigram",
-                        )
-                        token_freqs = process_text_to_frequencies(
-                            input_file=input_file,
-                            language=language_value,
-                            config=token_config,
-                            clean_text=True,
-                            replace_search=replace_search or None,
-                            replace_with=replace_with,
-                            replace_mode=replace_mode,
-                            replace_case_sensitive=replace_case_sensitive,
-                            replace_stage=replace_stage,
-                        )
-                        token_stats.append({
-                            "lemmatize": lemma_value,
-                            "include_stopwords": stop_value,
-                            "total_tokens": float(sum(token_freqs.values())),
-                            "unique_tokens": len(token_freqs),
-                        })
-
-                if ngram == "unigram":
-                    if lemmatize:
-                        no_lemma_config = WordCloudConfig(
-                            canvas_width=config.canvas_width,
-                            canvas_height=config.canvas_height,
-                            max_words=config.max_words,
-                            min_word_length=config.min_word_length,
-                            relative_scaling=config.relative_scaling,
-                            prefer_horizontal=config.prefer_horizontal,
-                            include_stopwords=config.include_stopwords,
-                            include_numbers=config.include_numbers,
-                            case_sensitive=config.case_sensitive,
-                            lemmatize=False,
-                            ngram="unigram",
-                        )
-                        frequencies_no_lemma = process_text_to_frequencies(
-                            input_file=input_file,
-                            language=language_value,
-                            config=no_lemma_config,
-                            clean_text=True,
-                            replace_search=replace_search or None,
-                            replace_with=replace_with,
-                            replace_mode=replace_mode,
-                            replace_case_sensitive=replace_case_sensitive,
-                            replace_stage=replace_stage,
-                        )
-                        top_terms_override = [
-                            word for word, _ in sorted(
-                                frequencies_no_lemma.items(),
-                                key=lambda item: (-item[1], item[0])
-                            )[:5]
-                        ]
-                        top_terms_note = "Top terms are taken from the non-lemmatized analysis to match the original text."
-                        bigram_config = WordCloudConfig(
-                            canvas_width=config.canvas_width,
-                            canvas_height=config.canvas_height,
-                            max_words=config.max_words,
-                            min_word_length=config.min_word_length,
-                            relative_scaling=config.relative_scaling,
-                            prefer_horizontal=config.prefer_horizontal,
-                            include_stopwords=config.include_stopwords,
-                            include_numbers=config.include_numbers,
-                            case_sensitive=config.case_sensitive,
-                            lemmatize=False,
-                            ngram="bigram",
-                        )
-                    else:
-                        bigram_config = WordCloudConfig(
-                            canvas_width=config.canvas_width,
-                            canvas_height=config.canvas_height,
-                            max_words=config.max_words,
-                            min_word_length=config.min_word_length,
-                            relative_scaling=config.relative_scaling,
-                            prefer_horizontal=config.prefer_horizontal,
-                            include_stopwords=config.include_stopwords,
-                            include_numbers=config.include_numbers,
-                            case_sensitive=config.case_sensitive,
-                            lemmatize=config.lemmatize,
-                            ngram="bigram",
-                        )
-
-                    bigram_frequencies = process_text_to_frequencies(
+        if not is_json_file(input_file):
+            raw_text = read_text_file(input_file, auto_convert=True, clean_text=False)
+            token_stats = []
+            for lemma_value in (False, True):
+                for stop_value in (True, False):
+                    token_config = WordCloudConfig(
+                        canvas_width=config.canvas_width,
+                        canvas_height=config.canvas_height,
+                        max_words=config.max_words,
+                        min_word_length=config.min_word_length,
+                        relative_scaling=config.relative_scaling,
+                        prefer_horizontal=config.prefer_horizontal,
+                        include_stopwords=stop_value,
+                        include_numbers=config.include_numbers,
+                        case_sensitive=config.case_sensitive,
+                        lemmatize=lemma_value,
+                        ngram="unigram",
+                    )
+                    token_freqs = process_text_to_frequencies(
                         input_file=input_file,
                         language=language_value,
-                        config=bigram_config,
+                        config=token_config,
                         clean_text=True,
                         replace_search=replace_search or None,
                         replace_with=replace_with,
@@ -544,27 +458,78 @@ def generate_wordcloud(
                         replace_case_sensitive=replace_case_sensitive,
                         replace_stage=replace_stage,
                     )
+                    token_stats.append({
+                        "lemmatize": lemma_value,
+                        "include_stopwords": stop_value,
+                        "total_tokens": float(sum(token_freqs.values())),
+                        "unique_tokens": len(token_freqs),
+                    })
 
-            if is_json_file(input_file):
-                comparison_reason = "Comparison not available for JSON inputs."
-            else:
-                comparison_config = WordCloudConfig(
-                    canvas_width=config.canvas_width,
-                    canvas_height=config.canvas_height,
-                    max_words=config.max_words,
-                    min_word_length=config.min_word_length,
-                    relative_scaling=config.relative_scaling,
-                    prefer_horizontal=config.prefer_horizontal,
-                    include_stopwords=config.include_stopwords,
-                    include_numbers=config.include_numbers,
-                    case_sensitive=config.case_sensitive,
-                    lemmatize=not config.lemmatize,
-                    ngram=config.ngram,
-                )
-                comparison_frequencies = process_text_to_frequencies(
+            if ngram == "unigram":
+                if lemmatize:
+                    no_lemma_config = WordCloudConfig(
+                        canvas_width=config.canvas_width,
+                        canvas_height=config.canvas_height,
+                        max_words=config.max_words,
+                        min_word_length=config.min_word_length,
+                        relative_scaling=config.relative_scaling,
+                        prefer_horizontal=config.prefer_horizontal,
+                        include_stopwords=config.include_stopwords,
+                        include_numbers=config.include_numbers,
+                        case_sensitive=config.case_sensitive,
+                        lemmatize=False,
+                        ngram="unigram",
+                    )
+                    frequencies_no_lemma = process_text_to_frequencies(
+                        input_file=input_file,
+                        language=language_value,
+                        config=no_lemma_config,
+                        clean_text=True,
+                        replace_search=replace_search or None,
+                        replace_with=replace_with,
+                        replace_mode=replace_mode,
+                        replace_case_sensitive=replace_case_sensitive,
+                        replace_stage=replace_stage,
+                    )
+                    top_terms_override = [
+                        word for word, _ in sorted(
+                            frequencies_no_lemma.items(),
+                            key=lambda item: (-item[1], item[0])
+                        )[:5]
+                    ]
+                    top_terms_note = "Top terms are taken from the non-lemmatized analysis to match the original text."
+                    bigram_config = WordCloudConfig(
+                        canvas_width=config.canvas_width,
+                        canvas_height=config.canvas_height,
+                        max_words=config.max_words,
+                        min_word_length=config.min_word_length,
+                        relative_scaling=config.relative_scaling,
+                        prefer_horizontal=config.prefer_horizontal,
+                        include_stopwords=config.include_stopwords,
+                        include_numbers=config.include_numbers,
+                        case_sensitive=config.case_sensitive,
+                        lemmatize=False,
+                        ngram="bigram",
+                    )
+                else:
+                    bigram_config = WordCloudConfig(
+                        canvas_width=config.canvas_width,
+                        canvas_height=config.canvas_height,
+                        max_words=config.max_words,
+                        min_word_length=config.min_word_length,
+                        relative_scaling=config.relative_scaling,
+                        prefer_horizontal=config.prefer_horizontal,
+                        include_stopwords=config.include_stopwords,
+                        include_numbers=config.include_numbers,
+                        case_sensitive=config.case_sensitive,
+                        lemmatize=config.lemmatize,
+                        ngram="bigram",
+                    )
+
+                bigram_frequencies = process_text_to_frequencies(
                     input_file=input_file,
                     language=language_value,
-                    config=comparison_config,
+                    config=bigram_config,
                     clean_text=True,
                     replace_search=replace_search or None,
                     replace_with=replace_with,
@@ -573,68 +538,91 @@ def generate_wordcloud(
                     replace_stage=replace_stage,
                 )
 
-            scenario = ScenarioMetadata(
-                label="Current scenario",
+        if is_json_file(input_file):
+            comparison_reason = "Comparison not available for JSON inputs."
+        else:
+            comparison_config = WordCloudConfig(
+                canvas_width=config.canvas_width,
+                canvas_height=config.canvas_height,
+                max_words=config.max_words,
+                min_word_length=config.min_word_length,
+                relative_scaling=config.relative_scaling,
+                prefer_horizontal=config.prefer_horizontal,
+                include_stopwords=config.include_stopwords,
+                include_numbers=config.include_numbers,
+                case_sensitive=config.case_sensitive,
+                lemmatize=not config.lemmatize,
+                ngram=config.ngram,
+            )
+            comparison_frequencies = process_text_to_frequencies(
+                input_file=input_file,
                 language=language_value,
-                ngram=ngram,
-                lemmatize=lemmatize,
-                include_stopwords=include_stopwords,
-                include_numbers=include_numbers,
-                case_sensitive=case_sensitive,
-                exclude_words=None,
-                exclude_case_sensitive=False,
-                regex_rule=None,
-                regex_case_sensitive=False,
+                config=comparison_config,
+                clean_text=True,
+                replace_search=replace_search or None,
+                replace_with=replace_with,
+                replace_mode=replace_mode,
+                replace_case_sensitive=replace_case_sensitive,
                 replace_stage=replace_stage,
             )
 
+            scenario = ScenarioMetadata(
+            label="Current scenario",
+            language=language_value,
+            ngram=ngram,
+            lemmatize=lemmatize,
+            include_stopwords=include_stopwords,
+            include_numbers=include_numbers,
+            case_sensitive=case_sensitive,
+            exclude_words=None,
+            exclude_case_sensitive=False,
+            regex_rule=None,
+            regex_case_sensitive=False,
+            replace_stage=replace_stage,
+            )
+
             cloud_metadata = CloudMetadata(
-                max_words=config.max_words,
-                min_word_length=config.min_word_length,
-                canvas_width=config.canvas_width,
-                canvas_height=config.canvas_height,
-                mask=config.mask,
-                contour_width=config.contour_width,
-                contour_color=config.contour_color,
-                font_path=config.font_path,
-                theme=theme_name,
-                colormap=config.colormap,
-                background=config.background_color,
-                fontcolor=config.font_color,
-                relative_scaling=config.relative_scaling,
-                prefer_horizontal=config.prefer_horizontal,
+            max_words=config.max_words,
+            min_word_length=config.min_word_length,
+            canvas_width=config.canvas_width,
+            canvas_height=config.canvas_height,
+            mask=config.mask,
+            contour_width=config.contour_width,
+            contour_color=config.contour_color,
+            font_path=config.font_path,
+            theme=theme_name,
+            colormap=config.colormap,
+            background=config.background_color,
+            fontcolor=config.font_color,
+            relative_scaling=config.relative_scaling,
+            prefer_horizontal=config.prefer_horizontal,
             )
 
             report_data = build_report_data(
-                frequencies=frequencies,
-                scenario=scenario,
-                comparison_frequencies=comparison_frequencies,
-                comparison_unavailable_reason=comparison_reason,
-                cloud_metadata=cloud_metadata,
-                source_name=os.path.basename(input_file),
-                raw_text=raw_text,
-                bigram_frequencies=bigram_frequencies,
-                top_terms_override=top_terms_override,
-                top_terms_note=top_terms_note,
-                token_stats=token_stats,
+            frequencies=frequencies,
+            scenario=scenario,
+            comparison_frequencies=comparison_frequencies,
+            comparison_unavailable_reason=comparison_reason,
+            cloud_metadata=cloud_metadata,
+            source_name=os.path.basename(input_file),
+            raw_text=raw_text,
+            bigram_frequencies=bigram_frequencies,
+            top_terms_override=top_terms_override,
+            top_terms_note=top_terms_note,
+            token_stats=token_stats,
             )
 
             report_txt_en = f"{report_base}_report_en.txt"
             report_txt_es = f"{report_base}_report_es.txt"
             report_pdf_en = f"{report_base}_report_en.pdf"
             report_pdf_es = f"{report_base}_report_es.pdf"
-            write_report_txt(render_report_txt(report_data, language="en"), report_txt_en)
-            write_report_txt(render_report_txt(report_data, language="es"), report_txt_es)
-            write_report_pdf(report_data, report_pdf_en, language="en")
-            write_report_pdf(report_data, report_pdf_es, language="es")
-            status = "Word cloud generated. Report exported."
-
-        if export_vocab and export_report:
-            status = "Word cloud generated. Vocabulary and report exported."
-
-        return image, vocab_json, vocab_csv, report_txt_en, report_txt_es, report_pdf_en, report_pdf_es, status
-
-        return image, vocab_json, vocab_csv, report_txt_en, report_txt_es, report_pdf_en, report_pdf_es, status
+        write_report_txt(render_report_txt(report_data, language="en"), report_txt_en)
+        write_report_txt(render_report_txt(report_data, language="es"), report_txt_es)
+        write_report_pdf(report_data, report_pdf_en, language="en")
+        write_report_pdf(report_data, report_pdf_es, language="es")
+        
+        status = "Word cloud generated. Vocabulary and reports exported."
+        return image, vocab_json, report_pdf_en, report_pdf_es, report_txt_en, report_txt_es, status
     except WordCloudServiceError as exc:
         raise gr.Error(str(exc)) from exc
     except Exception as exc:

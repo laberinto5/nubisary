@@ -123,22 +123,13 @@ Choose a font for your word cloud:
   - Display: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Custom...**: Select a font file from your system
 
-### Export Vocabulary
+### Generate and export additional outputs
 
-Export word frequency data:
+Check "Export additional outputs" to generate these additional files: 
 
-- Check "Export vocabulary" to generate JSON and CSV files
-- Optionally limit to top N words (e.g., top 20)
-- Files are saved alongside your word cloud image
+- JSON file containing all the vocabulary and the word count.
+- PDF & TXT files containing a user-friendly report on vocabulary stats and main insights.
 
-### Vocabulary Reports (TXT)
-
-The GUI does not generate vocabulary reports yet. Reports are currently available in the CLI:
-
-- `python nubisary.py generate --report ...` (English/Spanish reports)
-- `python nubisary.py analyze ...` (standalone report generation)
-
-GUI support for reports will be added in a future update.
 
 ## Tips & Best Practices
 
@@ -182,6 +173,4 @@ For detailed documentation, visit the project repository or check the CLI docume
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: January 2026
 

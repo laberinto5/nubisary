@@ -359,9 +359,7 @@ class WordCloudGUI:
         self.replace_case_sensitive = tk.BooleanVar(value=False)
         
         # Export options
-        self.vocabulary = tk.BooleanVar(value=False)
-        self.vocabulary_top_n = tk.StringVar(value="")
-        self.report = tk.BooleanVar(value=False)
+        self.additional_outputs = tk.BooleanVar(value=False)
         
         # Status
         self.status_text = tk.StringVar(value="Ready")
@@ -650,20 +648,14 @@ class WordCloudGUI:
         ).pack(side=tk.LEFT, padx=5)
         
         # Export statistics
+        # Export additional outputs
         export_frame = ctk.CTkFrame(self.advanced_frame)
         export_frame.pack(fill=tk.X, pady=5)
-        ctk.CTkCheckBox(export_frame, text="Export vocabulary (JSON/CSV)", variable=self.vocabulary).pack(side=tk.LEFT, padx=5)
-        ctk.CTkLabel(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
-        ctk.CTkEntry(export_frame, textvariable=self.vocabulary_top_n, width=10).pack(side=tk.LEFT, padx=5)
-
-        report_frame = ctk.CTkFrame(self.advanced_frame)
-        report_frame.pack(fill=tk.X, pady=5)
-        ctk.CTkCheckBox(report_frame, text="Export report (TXT/PDF)", variable=self.report).pack(side=tk.LEFT, padx=5)
-        
-        # Save vocabulary button
-        vocab_frame = ctk.CTkFrame(self.advanced_frame)
-        vocab_frame.pack(fill=tk.X, pady=5)
-        ctk.CTkButton(vocab_frame, text="Save Vocabulary (Frequencies JSON)", command=self.on_save_vocabulary, width=200).pack(side=tk.LEFT, padx=5)
+        ctk.CTkCheckBox(
+            export_frame, 
+            text="Export additional outputs (Vocabulary JSON + Reports TXT/PDF)", 
+            variable=self.additional_outputs
+        ).pack(side=tk.LEFT, padx=5)
         
         # Status bar (at bottom of left column)
         status_frame = ctk.CTkFrame(scrollable_frame)
@@ -1013,36 +1005,27 @@ class WordCloudGUI:
                 export_messages = []
                 
                 # Export statistics if requested
-                if self.vocabulary.get() and self.last_frequencies:
+                if self.additional_outputs.get() and self.last_frequencies:
+                    base_output = os.path.splitext(filename)[0]
+                    
+                    # Export vocabulary JSON
                     try:
-                        base_output = os.path.splitext(filename)[0]
-                        top_n = None
-                        try:
-                            top_n_str = self.vocabulary_top_n.get().strip()
-                            if top_n_str:
-                                top_n = int(top_n_str)
-                        except (ValueError, AttributeError):
-                            pass
-                        
-                        json_file, csv_file = export_statistics(
+                        json_file, _ = export_statistics(
                             frequencies=self.last_frequencies,
-                            base_output_file=base_output,
-                            top_n=top_n
+                            base_output_file=base_output
                         )
-                        export_messages.append(
-                            f"Vocabulary exported:\n{Path(json_file).name}\n{Path(csv_file).name}"
-                        )
+                        export_messages.append(f"Vocabulary exported:\n{Path(json_file).name}")
                     except Exception as e:
                         messagebox.showwarning(
-                            "Statistics Export Warning",
-                            f"Word cloud saved successfully, but statistics export failed:\n{str(e)}"
+                            "Vocabulary Export Warning",
+                            f"Word cloud saved successfully, but vocabulary export failed:\n{str(e)}"
                         )
-
-                if self.report.get():
+                    
+                    # Export reports (TXT/PDF in English and Spanish)
                     try:
-                        report_files = self._export_report_files(os.path.splitext(filename)[0])
+                        report_files = self._export_report_files(base_output)
                         export_messages.append(
-                            "Report exported:\n" + "\n".join(Path(p).name for p in report_files)
+                            "Reports exported:\n" + "\n".join(Path(p).name for p in report_files)
                         )
                     except Exception as e:
                         messagebox.showwarning(
@@ -1061,55 +1044,6 @@ class WordCloudGUI:
                     f"Failed to save word cloud:\n{str(e)}"
                 )
     
-    def on_save_vocabulary(self):
-        """Handle saving the processed vocabulary (frequencies) as JSON."""
-        if self.last_frequencies is None:
-            messagebox.showwarning(
-                "No Vocabulary Available",
-                "Please generate a word cloud first to create the vocabulary."
-            )
-            return
-        
-        # Suggest a default filename based on input file if available
-        initial_file = ""
-        if self.input_file.get():
-            input_path = Path(self.input_file.get())
-            initial_file = str(input_path.parent / f"{input_path.stem}_vocabulary.json")
-        else:
-            initial_file = "vocabulary.json"
-        
-        filename = filedialog.asksaveasfilename(
-            title="Save Vocabulary (Frequencies) As...",
-            defaultextension=".json",
-            initialfile=initial_file,
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
-        )
-        
-        if filename:
-            try:
-                import json
-                # Ensure .json extension
-                if not filename.endswith('.json'):
-                    filename = filename + '.json'
-                
-                # Sort by frequency (descending) for better readability
-                sorted_frequencies = dict(sorted(self.last_frequencies.items(), key=lambda x: x[1], reverse=True))
-                
-                # Write JSON file
-                with open(filename, 'w', encoding='utf-8') as f:
-                    json.dump(sorted_frequencies, f, indent=2, ensure_ascii=False)
-                
-                messagebox.showinfo(
-                    "Success",
-                    f"Vocabulary saved successfully!\n\nSaved to:\n{filename}\n\n"
-                    f"Total words: {len(sorted_frequencies)}"
-                )
-            except Exception as e:
-                messagebox.showerror(
-                    "Save Error",
-                    f"Failed to save vocabulary:\n{str(e)}"
-                )
-
     def _build_processing_config(self, lemmatize: bool, include_stopwords: bool, ngram: str) -> WordCloudConfig:
         config = WordCloudConfig()
         config.canvas_width = self.canvas_width.get()

@@ -123,22 +123,12 @@ Elige una fuente para tu nube de palabras:
   - Decorativas: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Personalizada...**: Selecciona un archivo de fuente de tu sistema
 
-### Exportar Vocabulario
+### Exportar outputs adicionales
 
-Exporta datos de frecuencia de palabras:
+Aparte de la imagen (.png), es posible obtener los siguientes archivos adicionales al marcar la casilla "Exportar outputs adicionales": 
 
-- Marca "Exportar vocabulario" para generar archivos JSON y CSV
-- Opcionalmente limita a las N palabras principales (ej: top 20)
-- Los archivos se guardan junto a tu imagen de nube de palabras
-
-### Reportes de Vocabulario (TXT)
-
-La GUI todavía no genera reportes. Por ahora están disponibles en la CLI:
-
-- `python nubisary.py generate --report ...` (reportes en inglés/español)
-- `python nubisary.py analyze ...` (generación standalone)
-
-El soporte en la GUI se añadirá en una actualización futura.
+- JSON con todo el vocabulario y la frecuencia de cada palabra.
+- PDF y TXT con un reporte sobre estadísticas del vocabulario y detalles destacables.
 
 ## Consejos y Mejores Prácticas
 
@@ -181,7 +171,4 @@ El soporte en la GUI se añadirá en una actualización futura.
 Para documentación detallada, visita el repositorio del proyecto o consulta la documentación CLI para funciones avanzadas.
 
 ---
-
-**Versión**: 1.0  
-**Última Actualización**: Enero 2026
 

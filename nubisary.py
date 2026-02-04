@@ -199,15 +199,20 @@ def generate(
         '--no-clean-text',
         help='Deprecated: document cleaning is always applied'
     ),
+    additional_outputs: bool = typer.Option(
+        False,
+        '-A', '--additional-outputs',
+        help='Generate additional outputs: vocabulary (JSON) and reports (TXT/PDF in English and Spanish)'
+    ),
     vocabulary: bool = typer.Option(
         False,
         '-V', '--vocabulary',
-        help='Export processed vocabulary (word frequencies) to JSON and CSV files'
+        help='[DEPRECATED] Use --additional-outputs instead. Export processed vocabulary (word frequencies) to JSON and CSV files'
     ),
     report: bool = typer.Option(
         False,
         '--report',
-        help='Generate a text report with vocabulary statistics'
+        help='[DEPRECATED] Use --additional-outputs instead. Generate a text report with vocabulary statistics'
     ),
     theme: Optional[str] = typer.Option(
         None,
@@ -315,8 +320,8 @@ def generate(
     python nubisary.py generate -i text.txt -l english -o output.png --theme soft,playroom
     
     \b
-    # Generate with vocabulary export (auto-generates filenames based on input)
-    python nubisary.py generate -i text.txt -l english --vocabulary
+    # Generate with additional outputs (JSON vocabulary + TXT/PDF reports)
+    python nubisary.py generate -i text.txt -l english --additional-outputs
     
     \b
     # Generate with custom colormap
@@ -327,16 +332,16 @@ def generate(
     python nubisary.py generate -i text.txt -l english --mask heart.png --contour-width 2 --contour-color red
     
     \b
-    # Generate from PDF (auto-converts to text) with vocabulary export
-    python nubisary.py generate -i document.pdf -l english --vocabulary
+    # Generate from PDF with additional outputs
+    python nubisary.py generate -i document.pdf -l english --additional-outputs
     
     \b
-    # Generate with custom colors and vocabulary export
-    python nubisary.py generate -i text.txt -l spanish -B white -F "#FF0000" --vocabulary
+    # Generate with custom colors and additional outputs
+    python nubisary.py generate -i text.txt -l spanish -B white -F "#FF0000" --additional-outputs
     
     \b
-    # Generate from JSON frequencies with vocabulary export
-    python nubisary.py generate -i frequencies.json -l english --vocabulary
+    # Generate from JSON frequencies with additional outputs
+    python nubisary.py generate -i frequencies.json -l english --additional-outputs
     
     \b
     # Generate with excluded words/phrases (removes repeated headers from PDF conversion)
@@ -583,23 +588,33 @@ def generate(
             
             logger.info(f'Word cloud saved to {theme_output}')
         
+        # Handle deprecated flags
+        enable_vocab_export = additional_outputs or vocabulary
+        enable_report_export = additional_outputs or report
+        
+        # Show deprecation warnings
+        if vocabulary and not additional_outputs:
+            logger.warning('--vocabulary is deprecated. Use --additional-outputs instead.')
+        if report and not additional_outputs:
+            logger.warning('--report is deprecated. Use --additional-outputs instead.')
+        
         # Export vocabulary if requested (only once, for the first theme)
-        if vocabulary:
+        if enable_vocab_export:
             # Auto-generate vocabulary output filename based on output or input
             if output:
                 vocabulary_output = os.path.splitext(output)[0]
             else:
                 vocabulary_output = os.path.splitext(generate_output_filename(input, '.png'))[0]
             
-            # Export both JSON and CSV
-            json_file, csv_file = export_statistics(
+            # Export JSON only (no CSV for simplicity)
+            json_file, _ = export_statistics(
                 frequencies=frequencies,
                 base_output_file=vocabulary_output
             )
-            logger.info(f'Vocabulary exported: {json_file} and {csv_file}')
+            logger.info(f'Vocabulary exported: {json_file}')
 
         # Export report if requested (analysis is based on full vocabulary, not cloud filters)
-        if report:
+        if enable_report_export:
             report_base = os.path.splitext(output)[0] if output else os.path.splitext(generate_output_filename(input, '.png'))[0]
             report_file = f"{report_base}_report.txt"
 
@@ -911,7 +926,7 @@ def convert(
     Convert a document (PDF, DOC, or DOCX) to a plain text file.
     
     This allows you to review and edit the extracted text before generating a word cloud.
-    Note: Vocabulary export (--vocabulary) is only available with the 'generate' command.
+    Note: Additional outputs (--additional-outputs) are only available with the 'generate' command.
     
     Examples:
     
@@ -924,8 +939,8 @@ def convert(
     python nubisary.py convert -i document.docx
     
     \b
-    # Then generate word cloud with vocabulary export from the converted text
-    python nubisary.py generate -i document.txt -l english -o cloud.png --vocabulary
+    # Then generate word cloud with additional outputs from the converted text
+    python nubisary.py generate -i document.txt -l english -o cloud.png --additional-outputs
     """
     try:
         # Check if file is convertible
