@@ -27,6 +27,9 @@ tkcolorpicker2>=1.0    # Enhanced color picker with HSV/HSL interface (optional,
 pytest>=7.0.0
 pytest-cov>=4.0.0  # For coverage reports
 
+# Reporting (PDF)
+reportlab>=4.0.0
+
 # Optional: for better CLI experience (rich terminal output)
 # rich>=13.0.0  # Uncomment if you want enhanced Typer output
 

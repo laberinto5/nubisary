@@ -3,6 +3,7 @@
 # Add parent directory to path if running directly (for development/testing)
 # This must be done BEFORE importing src modules
 import sys
+from typing import List
 from pathlib import Path
 if __name__ == '__main__':
     parent_dir = Path(__file__).parent.parent
@@ -34,8 +35,16 @@ from src.wordcloud_service import process_text_to_frequencies, WordCloudServiceE
 from src.wordcloud_generator import generate_word_cloud_from_frequencies, apply_wordcloud_filters
 from src.config import WordCloudConfig, LANGUAGES_FOR_NLTK
 from src.statistics_exporter import export_statistics
+from src.report_generator import (
+    build_report_data,
+    render_report_txt,
+    write_report_txt,
+    write_report_pdf,
+    ScenarioMetadata,
+    CloudMetadata,
+)
 from src.themes import get_theme, get_theme_names, Theme
-from src.file_handlers import is_json_file, is_convertible_document, FileHandlerError
+from src.file_handlers import is_json_file, is_convertible_document, FileHandlerError, read_text_file
 from src.custom_themes import load_custom_theme_from_json, save_theme_to_json, CustomThemeError
 from src.custom_colormaps import register_custom_colormap, is_colormap_registered, CustomColormapError
 from src.resource_loader import list_mask_files, get_mask_path, get_resource_path
@@ -352,6 +361,7 @@ class WordCloudGUI:
         # Export options
         self.vocabulary = tk.BooleanVar(value=False)
         self.vocabulary_top_n = tk.StringVar(value="")
+        self.report = tk.BooleanVar(value=False)
         
         # Status
         self.status_text = tk.StringVar(value="Ready")
@@ -645,6 +655,10 @@ class WordCloudGUI:
         ctk.CTkCheckBox(export_frame, text="Export vocabulary (JSON/CSV)", variable=self.vocabulary).pack(side=tk.LEFT, padx=5)
         ctk.CTkLabel(export_frame, text="Top N words:").pack(side=tk.LEFT, padx=5)
         ctk.CTkEntry(export_frame, textvariable=self.vocabulary_top_n, width=10).pack(side=tk.LEFT, padx=5)
+
+        report_frame = ctk.CTkFrame(self.advanced_frame)
+        report_frame.pack(fill=tk.X, pady=5)
+        ctk.CTkCheckBox(report_frame, text="Export report (TXT/PDF)", variable=self.report).pack(side=tk.LEFT, padx=5)
         
         # Save vocabulary button
         vocab_frame = ctk.CTkFrame(self.advanced_frame)
@@ -996,6 +1010,8 @@ class WordCloudGUI:
                 self.status_text.set(f"Word cloud saved to: {filename}")
                 self.status_label.configure(text=f"Word cloud saved to: {filename}")
                 
+                export_messages = []
+                
                 # Export statistics if requested
                 if self.vocabulary.get() and self.last_frequencies:
                     try:
@@ -1013,9 +1029,7 @@ class WordCloudGUI:
                             base_output_file=base_output,
                             top_n=top_n
                         )
-                        messagebox.showinfo(
-                            "Success",
-                            f"Word cloud saved successfully!\n\nSaved to:\n{filename}\n\n"
+                        export_messages.append(
                             f"Vocabulary exported:\n{Path(json_file).name}\n{Path(csv_file).name}"
                         )
                     except Exception as e:
@@ -1023,10 +1037,23 @@ class WordCloudGUI:
                             "Statistics Export Warning",
                             f"Word cloud saved successfully, but statistics export failed:\n{str(e)}"
                         )
-                else:
+
+                if self.report.get():
+                    try:
+                        report_files = self._export_report_files(os.path.splitext(filename)[0])
+                        export_messages.append(
+                            "Report exported:\n" + "\n".join(Path(p).name for p in report_files)
+                        )
+                    except Exception as e:
+                        messagebox.showwarning(
+                            "Report Export Warning",
+                            f"Word cloud saved successfully, but report export failed:\n{str(e)}"
+                        )
+
                     messagebox.showinfo(
                         "Success",
                         f"Word cloud saved successfully!\n\nSaved to:\n{filename}"
+                    + ("\n\n" + "\n\n".join(export_messages) if export_messages else "")
                     )
             except Exception as e:
                 messagebox.showerror(
@@ -1082,6 +1109,208 @@ class WordCloudGUI:
                     "Save Error",
                     f"Failed to save vocabulary:\n{str(e)}"
                 )
+
+    def _build_processing_config(self, lemmatize: bool, include_stopwords: bool, ngram: str) -> WordCloudConfig:
+        config = WordCloudConfig()
+        config.canvas_width = self.canvas_width.get()
+        config.canvas_height = self.canvas_height.get()
+        config.max_words = self.max_words.get()
+        config.min_word_length = self.min_word_length.get()
+        config.include_stopwords = include_stopwords
+        config.case_sensitive = self.case_sensitive.get()
+        config.ngram = ngram
+        config.lemmatize = lemmatize
+        config.include_numbers = self.include_numbers.get()
+        config.relative_scaling = self.relative_scaling.get()
+        config.prefer_horizontal = self.prefer_horizontal.get()
+        return config
+
+    def _export_report_files(self, base_output: str) -> List[str]:
+        if not self.last_frequencies:
+            raise ValueError("No frequencies available for report export.")
+
+        input_path = self.input_file.get()
+        is_json_input = is_json_file(input_path)
+        language = self.language.get() if not is_json_input else "english"
+
+        replace_search = self.replace_search.get().strip()
+        replace_with = self.replace_with.get()
+        replace_mode_label = self.replace_mode.get()
+        replace_mode = {
+            "Single word/phrase": "single",
+            "Comma-separated list": "list",
+            "Regex": "regex"
+        }.get(replace_mode_label, "single")
+        replace_stage_label = self.replace_stage.get()
+        replace_stage = {
+            "Original text": "original",
+            "Processed text": "processed"
+        }.get(replace_stage_label, "original")
+
+        comparison_frequencies = None
+        comparison_reason = None
+        if is_json_input:
+            comparison_reason = "Comparison not available for JSON inputs."
+        else:
+            comparison_config = self._build_processing_config(
+                lemmatize=not self.lematize.get(),
+                include_stopwords=self.include_stopwords.get(),
+                ngram=self.ngram.get(),
+            )
+            comparison_frequencies = process_text_to_frequencies(
+                input_file=input_path,
+                language=language,
+                config=comparison_config,
+                clean_text=True,
+                replace_search=replace_search if replace_search else None,
+                replace_with=replace_with,
+                replace_mode=replace_mode,
+                replace_case_sensitive=self.replace_case_sensitive.get(),
+                replace_stage=replace_stage,
+            )
+
+        raw_text = None
+        bigram_frequencies = None
+        top_terms_override = None
+        top_terms_note = None
+        token_stats = None
+
+        if not is_json_input:
+            raw_text = read_text_file(input_path, auto_convert=True, clean_text=False)
+
+            token_stats = []
+            for lemmatize_value in (False, True):
+                for stop_value in (True, False):
+                    token_config = self._build_processing_config(
+                        lemmatize=lemmatize_value,
+                        include_stopwords=stop_value,
+                        ngram="unigram",
+                    )
+                    token_freqs = process_text_to_frequencies(
+                        input_file=input_path,
+                        language=language,
+                        config=token_config,
+                        clean_text=True,
+                        replace_search=replace_search if replace_search else None,
+                        replace_with=replace_with,
+                        replace_mode=replace_mode,
+                        replace_case_sensitive=self.replace_case_sensitive.get(),
+                        replace_stage=replace_stage,
+                    )
+                    token_stats.append({
+                        "lemmatize": lemmatize_value,
+                        "include_stopwords": stop_value,
+                        "total_tokens": float(sum(token_freqs.values())),
+                        "unique_tokens": len(token_freqs),
+                    })
+
+            if self.ngram.get() == "unigram":
+                if self.lematize.get():
+                    no_lemma_config = self._build_processing_config(
+                        lemmatize=False,
+                        include_stopwords=self.include_stopwords.get(),
+                        ngram="unigram",
+                    )
+                    frequencies_no_lemma = process_text_to_frequencies(
+                        input_file=input_path,
+                        language=language,
+                        config=no_lemma_config,
+                        clean_text=True,
+                        replace_search=replace_search if replace_search else None,
+                        replace_with=replace_with,
+                        replace_mode=replace_mode,
+                        replace_case_sensitive=self.replace_case_sensitive.get(),
+                        replace_stage=replace_stage,
+                    )
+                    top_terms_override = [
+                        word for word, _ in sorted(
+                            frequencies_no_lemma.items(),
+                            key=lambda item: (-item[1], item[0])
+                        )[:5]
+                    ]
+                    top_terms_note = "Top terms are taken from the non-lemmatized analysis to match the original text."
+                    bigram_config = self._build_processing_config(
+                        lemmatize=False,
+                        include_stopwords=self.include_stopwords.get(),
+                        ngram="bigram",
+                    )
+                else:
+                    bigram_config = self._build_processing_config(
+                        lemmatize=self.lematize.get(),
+                        include_stopwords=self.include_stopwords.get(),
+                        ngram="bigram",
+                    )
+
+                bigram_frequencies = process_text_to_frequencies(
+                    input_file=input_path,
+                    language=language,
+                    config=bigram_config,
+                    clean_text=True,
+                    replace_search=replace_search if replace_search else None,
+                    replace_with=replace_with,
+                    replace_mode=replace_mode,
+                    replace_case_sensitive=self.replace_case_sensitive.get(),
+                    replace_stage=replace_stage,
+                )
+
+        scenario = ScenarioMetadata(
+            label="Current scenario",
+            language=language,
+            ngram=self.ngram.get(),
+            lemmatize=self.lematize.get(),
+            include_stopwords=self.include_stopwords.get(),
+            include_numbers=self.include_numbers.get(),
+            case_sensitive=self.case_sensitive.get(),
+            exclude_words=None,
+            exclude_case_sensitive=False,
+            regex_rule=None,
+            regex_case_sensitive=False,
+            replace_stage=replace_stage,
+        )
+
+        cloud_config = self.last_config
+        cloud_metadata = CloudMetadata(
+            max_words=cloud_config.max_words,
+            min_word_length=cloud_config.min_word_length,
+            canvas_width=cloud_config.canvas_width,
+            canvas_height=cloud_config.canvas_height,
+            mask=cloud_config.mask,
+            contour_width=cloud_config.contour_width,
+            contour_color=cloud_config.contour_color,
+            font_path=cloud_config.font_path,
+            theme=self.theme.get(),
+            colormap=cloud_config.colormap,
+            background=cloud_config.background_color,
+            fontcolor=cloud_config.font_color,
+            relative_scaling=cloud_config.relative_scaling,
+            prefer_horizontal=cloud_config.prefer_horizontal,
+        )
+
+        report_data = build_report_data(
+            frequencies=self.last_frequencies,
+            scenario=scenario,
+            comparison_frequencies=comparison_frequencies,
+            comparison_unavailable_reason=comparison_reason,
+            cloud_metadata=cloud_metadata,
+            source_name=os.path.basename(input_path) if input_path else None,
+            raw_text=raw_text,
+            bigram_frequencies=bigram_frequencies,
+            top_terms_override=top_terms_override,
+            top_terms_note=top_terms_note,
+            token_stats=token_stats,
+        )
+
+        report_txt_en = f"{base_output}_report_en.txt"
+        report_txt_es = f"{base_output}_report_es.txt"
+        report_pdf_en = f"{base_output}_report_en.pdf"
+        report_pdf_es = f"{base_output}_report_es.pdf"
+
+        write_report_txt(render_report_txt(report_data, language="en"), report_txt_en)
+        write_report_txt(render_report_txt(report_data, language="es"), report_txt_es)
+        write_report_pdf(report_data, report_pdf_en, language="en")
+        write_report_pdf(report_data, report_pdf_es, language="es")
+
+        return [report_txt_en, report_txt_es, report_pdf_en, report_pdf_es]
     
     def _update_preset_mask_list(self):
         """Update the preset mask combobox with current available masks (without extension)."""
@@ -1384,8 +1613,9 @@ class WordCloudGUI:
                 self.cached_frequencies = frequencies
                 self.cached_processing_hash = current_hash
             
-            # Store raw frequencies for later use (vocabulary export)
+            # Store raw frequencies and config for later use (exports/report)
             self.last_frequencies = frequencies
+            self.last_config = config
             
             # Generate word cloud to a temporary file for preview
             import tempfile

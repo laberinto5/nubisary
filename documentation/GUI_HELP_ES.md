@@ -23,13 +23,12 @@ Nubisary es un generador de nubes de palabras que crea visualizaciones hermosas 
 
 ### Selección de Idioma
 
-Elige el idioma de tu texto para habilitar el filtrado correcto de palabras vacías. Los idiomas soportados incluyen:
+Elige el idioma de tu texto. La GUI solo lista idiomas con soporte end‑to‑end:
 
-**Idiomas Europeos**: Inglés, Español, Francés, Italiano, Portugués, Alemán, Holandés, Ruso, Griego, Danés, Noruego, Sueco, Finlandés, Turco
+Inglés, Español, Francés, Alemán, Italiano, Portugués
 
-**Otros Idiomas**: Árabe, Chino, Hebreo, Indonesio
-
-La configuración de idioma ayuda a eliminar palabras comunes (como "el", "la", "y" en español) para enfocarse en contenido significativo.
+El idioma controla el filtrado de stopwords y la lematización.
+Consulta `documentation/LANGUAGE_SUPPORT.md` para más detalles.
 
 ## Opciones de Procesamiento de Texto
 
@@ -37,7 +36,7 @@ La configuración de idioma ayuda a eliminar palabras comunes (como "el", "la", 
 
 - **Incluir palabras vacías**: Mantener palabras comunes (generalmente desmarcado)
 - **Sensible a mayúsculas**: Distinguir entre mayúsculas y minúsculas
-- **N-gramas**: Elegir tokenización `unigram` o `bigram`
+- **N-gramas**: Elegir tokenización `unigram` (palabras individuales) o `bigram` (pares de palabras). Los bigramas solo se forman dentro de los límites de las oraciones para mantener la precisión semántica
 - **Lematizar**: Reducir palabras a su lema (forma base)
 - **Incluir números**: Mantener valores numéricos en la nube de palabras
 - **Longitud mínima de palabra**: Mínimo de caracteres por palabra (por defecto: 0)
@@ -131,6 +130,15 @@ Exporta datos de frecuencia de palabras:
 - Marca "Exportar vocabulario" para generar archivos JSON y CSV
 - Opcionalmente limita a las N palabras principales (ej: top 20)
 - Los archivos se guardan junto a tu imagen de nube de palabras
+
+### Reportes de Vocabulario (TXT)
+
+La GUI todavía no genera reportes. Por ahora están disponibles en la CLI:
+
+- `python nubisary.py generate --report ...` (reportes en inglés/español)
+- `python nubisary.py analyze ...` (generación standalone)
+
+El soporte en la GUI se añadirá en una actualización futura.
 
 ## Consejos y Mejores Prácticas
 

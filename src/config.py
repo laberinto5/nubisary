@@ -4,27 +4,15 @@ from dataclasses import dataclass
 from typing import Optional
 
 
-# Supported languages for NLTK stopwords
-# All languages with verified NLTK stopwords support are included
+# Fully supported languages (end-to-end)
+# These languages are supported across tokenization, stopwords, lemmatization, and fonts.
 LANGUAGES_FOR_NLTK = [
-    'arabic',       # 754 stopwords (العربية)
-    'chinese',      # 841 stopwords (中文)
-    'danish',       # 94 stopwords (dansk)
-    'dutch',        # 101 stopwords (Nederlands)
-    'english',      # 198 stopwords
-    'finnish',      # 235 stopwords (suomi)
-    'french',       # 157 stopwords (français)
-    'german',       # 232 stopwords (Deutsch)
-    'greek',        # 265 stopwords (Ελληνικά)
-    'hebrew',       # 221 stopwords (עברית)
-    'indonesian',   # 758 stopwords (Bahasa Indonesia)
-    'italian',      # 279 stopwords (italiano)
-    'norwegian',    # 176 stopwords (norsk)
-    'portuguese',   # 207 stopwords (português)
-    'russian',      # 151 stopwords (русский)
-    'spanish',      # 313 stopwords (español)
-    'swedish',      # 114 stopwords (svenska)
-    'turkish'       # 53 stopwords (Türkçe)
+    'english',
+    'spanish',
+    'french',
+    'german',
+    'italian',
+    'portuguese',
 ]
 
 # Valid color names for wordcloud

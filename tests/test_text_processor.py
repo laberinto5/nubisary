@@ -103,6 +103,32 @@ class TestPreprocessText:
         assert "30" not in result
         assert "14" not in result
         assert "normal" in result
+    
+    def test_preserve_sentence_boundaries_replaces_delimiters(self):
+        """Test that sentence delimiters are replaced with SENT marker when preserve_sentence_boundaries is True."""
+        text = "Hello. World! How are you? Fine; thanks\nGoodbye"
+        result = preprocess_text(text, case_sensitive=False, preserve_sentence_boundaries=True)
+        # The marker <SENT> becomes 'sent' after lowercase and punctuation removal
+        assert 'sent' in result
+        assert '.' not in result
+        assert '!' not in result
+        assert '?' not in result
+        assert ';' not in result
+        assert 'hello' in result
+        assert 'world' in result
+    
+    def test_preserve_sentence_boundaries_false_removes_all_punct(self):
+        """Test that when preserve_sentence_boundaries is False, all punctuation is removed as spaces."""
+        text = "Hello. World! How are you?"
+        result = preprocess_text(text, case_sensitive=False, preserve_sentence_boundaries=False)
+        # No 'sent' marker should exist
+        assert 'sent' not in result or 'sent' not in result.split()  # 'sent' could be substring of another word
+        assert '.' not in result
+        assert '!' not in result
+        assert '?' not in result
+        # Words should still be present, separated by spaces
+        assert 'hello' in result
+        assert 'world' in result
 
 
 class TestGenerateWordCountFromText:
@@ -170,6 +196,31 @@ class TestGenerateWordCountFromText:
         
         # After removing digit tokens, bigrams are computed normally
         assert result == {'casa azul': 2, 'azul casa': 1}
+    
+    @patch('src.text_processor.stopwords')
+    def test_generate_word_count_bigram_respects_sentence_boundaries(self, mock_stopwords):
+        """Test that bigrams do not cross sentence boundaries marked by SENT."""
+        mock_stopwords.words.return_value = []
+        
+        # Simulate text that has been preprocessed with preserve_sentence_boundaries=True
+        # "Cielos.\nHoy" becomes "cielos sent hoy" after preprocessing
+        text = "cielos sent hoy camina"
+        result = generate_word_count_from_text(
+            text=text,
+            language='spanish',
+            include_stopwords=False,
+            ngram="bigram",
+            include_numbers=False
+        )
+        
+        # Should create "hoy camina" but NOT "cielos hoy" (crosses sent boundary)
+        assert 'hoy camina' in result
+        assert result['hoy camina'] == 1
+        # False bigram across sentence boundary should NOT exist
+        assert 'cielos hoy' not in result
+        # 'sent' token itself should not appear in any bigram
+        for bigram in result.keys():
+            assert 'sent' not in bigram
 
 
 class TestNormalizeSpaces:

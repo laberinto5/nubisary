@@ -232,6 +232,9 @@ Minimum character length for words included in the word cloud (default: 0).
 ### `-P, --lematize`
 Lematize words before generating the word cloud.
 
+**Note:** Lematization support is language-dependent. See
+[`LANGUAGE_SUPPORT.md`](LANGUAGE_SUPPORT.md) for details.
+
 ### `-N, --include-numbers`
 Include numbers in the word cloud (default: numbers are excluded). When disabled, any token containing digits is removed.
 
@@ -240,8 +243,10 @@ Include stopwords (default: stopwords are filtered out).
 
 ### `--ngram`
 Tokenization mode for frequency generation. Options:
-- `unigram` (default)
-- `bigram`
+- `unigram` (default): Individual words
+- `bigram`: Consecutive word pairs
+
+**Note**: Bigram processing includes special handling to preserve sentence boundaries. Sentence delimiters (`.`, `!`, `?`, `;`) and line breaks are treated as boundaries, ensuring that bigrams are only formed within the same sentence. This maintains semantic accuracy by preventing word pairs from being created across sentence boundaries.
 
 ### `-U, --case-sensitive`
 Make word processing case-sensitive (default: case-insensitive).
@@ -251,17 +256,23 @@ Make word processing case-sensitive (default: case-insensitive).
 ### `-V, --vocabulary`
 Export processed vocabulary to JSON and CSV files.
 
-### `--vocabulary-top-n INT`
-Export only the top N words (default: all words).
-
-**Example:**
-```bash
-python nubisary.py generate -i text.txt -l english --vocabulary --vocabulary-top-n 20
-```
-
 **Output Files:**
 - `{base}_vocabulary.json`: Word frequencies in JSON format
 - `{base}_vocabulary.csv`: Word frequencies in CSV format
+
+## Report Output
+
+### `--report`
+Generate a human-readable text report with vocabulary statistics.
+
+**Example:**
+```bash
+python nubisary.py generate -i text.txt -l english --report
+```
+
+**Output Files:**
+- `{base}_report_en.txt`: Report in English
+- `{base}_report_es.txt`: Report in Spanish
 
 ## Command: `convert`
 
@@ -286,6 +297,37 @@ python nubisary.py convert -i document.pdf -o document.txt
 
 **Note:** Vocabulary export (`--vocabulary`) is only available with the `generate` command.
 
+## Command: `analyze`
+
+Analyze a document or JSON vocabulary and generate a text report without creating a word cloud.
+
+**Syntax:**
+```bash
+python nubisary.py analyze [OPTIONS]
+```
+
+**Required Options:**
+- `-i, --input PATH`: Input file (text, JSON, PDF, or DOCX)
+
+**Optional Options:**
+- `-l, --language LANGUAGE`: Language code (ignored for JSON)
+- `-o, --output PATH`: Output report path (default: auto-generated)
+- `-P, --lematize`: Lematize words before analysis
+- `-N, --include-numbers`: Include numbers in analysis
+- `-W, --include-stopwords`: Include stopwords in analysis
+- `-U, --case-sensitive`: Case-sensitive analysis
+- `--ngram`: Tokenization mode (`unigram` or `bigram`)
+- `-ew, --exclude-words`: Exclude words or phrases
+- `--exclude-case-sensitive`: Case-sensitive exclusion
+- `-rr, --regex-rule`: Regex transformation rule or rules file
+- `--regex-case-sensitive`: Case-sensitive regex
+- `--replace-stage`: Apply regex replacements at `original` or `processed`
+
+**Example:**
+```bash
+python nubisary.py analyze -i document.pdf -l spanish --lematize
+```
+
 ## Common Usage Patterns
 
 ### Basic Word Cloud
@@ -305,7 +347,7 @@ python nubisary.py generate -i document.pdf -l spanish -ew "Título del Libro" -
 
 ### Custom Colors and Vocabulary
 ```bash
-python nubisary.py generate -i text.txt -l english -B white -F "#FF0000" --vocabulary --vocabulary-top-n 50
+python nubisary.py generate -i text.txt -l english -B white -F "#FF0000" --vocabulary
 ```
 
 ### Advanced Regex Processing
@@ -341,6 +383,7 @@ Understanding the processing order helps you use options effectively:
 7. **Word Frequency Generation** (unigram or bigram)
 8. **Word Cloud Generation** (visual settings + filters)
 9. **Vocabulary Export** (if `--vocabulary`)
+10. **Report Export** (if `--report`)
 
 ## Error Handling
 
