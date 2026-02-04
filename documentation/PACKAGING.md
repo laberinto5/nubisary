@@ -17,30 +17,15 @@ This guide consolidates how to build and package the GUI with PyInstaller.
 
 ## Build Commands
 
-### One-file (recommended for most users)
-
 ```bash
 pyinstaller nubisary_gui.spec
 ```
 
-### One-folder (faster startup)
-
-```bash
-pyinstaller nubisary_gui_folder.spec
-```
-
 Outputs:
-- **Windows**: `dist/nubisary.exe` (one-file) or `dist/nubisary/` (one-folder)
-- **Linux**: `dist/nubisary` (one-file) or `dist/nubisary/` (one-folder)
+- **Windows**: `dist/nubisary.exe`
+- **Linux**: `dist/nubisary`
 
-## One-file vs One-folder
-
-| Feature | One-file | One-folder |
-|---------|----------|------------|
-| Startup time | 30+ seconds | 1–3 seconds |
-| Distribution | Single file | Folder (can be zipped) |
-| User simplicity | Highest | Slightly lower |
-| Size | ~150–200 MB | ~150–200 MB (total) |
+The executable is built as a single file for easier distribution. First startup may take 30+ seconds as the application unpacks temporary files.
 
 ## NLTK Data
 
@@ -77,9 +62,9 @@ chmod +x dist/nubisary
 
 ## Distribution Tips
 
-- Provide both builds if possible (one-file + one-folder).
 - Include a short README (requirements + basic usage).
 - Windows Defender may warn; code signing helps for production.
+- First startup may be slower (30+ seconds) as the application unpacks temporary files.
 
 ## Build Artifacts
 
