@@ -280,7 +280,7 @@ class TestProcessTextToFrequencies:
         mock_remove_excluded.assert_called_once_with("RAW", ["foo", "bar"], False)
         mock_apply_literal.assert_called_once()
         mock_apply_regex.assert_called_once()
-        mock_preprocess.assert_called_once_with("REGEX", False, include_numbers=False)
+        mock_preprocess.assert_called_once_with("REGEX", False, include_numbers=False, preserve_sentence_boundaries=True)
         mock_normalize.assert_called_once_with("PREPROC", "spanish")
         mock_generate_count.assert_called_once_with(
             text="LEMMA",
@@ -367,7 +367,7 @@ class TestProcessTextToFrequencies:
         )
 
         assert result == {"foo": 1}
-        mock_preprocess.assert_called_once_with("RAW", False, include_numbers=False)
+        mock_preprocess.assert_called_once_with("RAW", False, include_numbers=False, preserve_sentence_boundaries=False)
         mock_normalize.assert_called_once_with("PREPROC", "spanish")
         assert mock_apply_regex.call_count == 1
         assert mock_apply_regex.call_args[0][0] == "LEMMA"

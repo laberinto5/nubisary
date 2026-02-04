@@ -23,13 +23,12 @@ Nubisary es un generador de nubes de palabras que crea visualizaciones hermosas 
 
 ### Selección de Idioma
 
-Elige el idioma de tu texto para habilitar el filtrado correcto de palabras vacías. Los idiomas soportados incluyen:
+Elige el idioma de tu texto. La GUI solo lista idiomas con soporte end‑to‑end:
 
-**Idiomas Europeos**: Inglés, Español, Francés, Italiano, Portugués, Alemán, Holandés, Ruso, Griego, Danés, Noruego, Sueco, Finlandés, Turco
+Inglés, Español, Francés, Alemán, Italiano, Portugués
 
-**Otros Idiomas**: Árabe, Chino, Hebreo, Indonesio
-
-La configuración de idioma ayuda a eliminar palabras comunes (como "el", "la", "y" en español) para enfocarse en contenido significativo.
+El idioma controla el filtrado de stopwords y la lematización.
+Consulta `documentation/LANGUAGE_SUPPORT.md` para más detalles.
 
 ## Opciones de Procesamiento de Texto
 
@@ -37,7 +36,7 @@ La configuración de idioma ayuda a eliminar palabras comunes (como "el", "la", 
 
 - **Incluir palabras vacías**: Mantener palabras comunes (generalmente desmarcado)
 - **Sensible a mayúsculas**: Distinguir entre mayúsculas y minúsculas
-- **N-gramas**: Elegir tokenización `unigram` o `bigram`
+- **N-gramas**: Elegir tokenización `unigram` (palabras individuales) o `bigram` (pares de palabras). Los bigramas solo se forman dentro de los límites de las oraciones para mantener la precisión semántica
 - **Lematizar**: Reducir palabras a su lema (forma base)
 - **Incluir números**: Mantener valores numéricos en la nube de palabras
 - **Longitud mínima de palabra**: Mínimo de caracteres por palabra (por defecto: 0)
@@ -124,13 +123,12 @@ Elige una fuente para tu nube de palabras:
   - Decorativas: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Personalizada...**: Selecciona un archivo de fuente de tu sistema
 
-### Exportar Vocabulario
+### Exportar outputs adicionales
 
-Exporta datos de frecuencia de palabras:
+Aparte de la imagen (.png), es posible obtener los siguientes archivos adicionales al marcar la casilla "Exportar outputs adicionales": 
 
-- Marca "Exportar vocabulario" para generar archivos JSON y CSV
-- Opcionalmente limita a las N palabras principales (ej: top 20)
-- Los archivos se guardan junto a tu imagen de nube de palabras
+- JSON con todo el vocabulario y la frecuencia de cada palabra.
+- PDF y TXT con un reporte sobre estadísticas del vocabulario y detalles destacables.
 
 ## Consejos y Mejores Prácticas
 
@@ -173,7 +171,4 @@ Exporta datos de frecuencia de palabras:
 Para documentación detallada, visita el repositorio del proyecto o consulta la documentación CLI para funciones avanzadas.
 
 ---
-
-**Versión**: 1.0  
-**Última Actualización**: Enero 2026
 

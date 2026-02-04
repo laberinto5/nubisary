@@ -40,65 +40,30 @@ jobs:
       run: |
         python -c "import nltk; nltk.download('punkt'); nltk.download('stopwords')"
     
-    - name: Build one-file executable with PyInstaller
+    - name: Build executable with PyInstaller
       run: |
         pyinstaller nubisary_gui.spec
-    
-    - name: Build one-folder executable with PyInstaller
-      run: |
-        # Clean dist folder first to avoid conflicts
-        rm -rf dist/nubisary
-        pyinstaller nubisary_gui_folder.spec
     
     - name: Set executable permissions
       run: |
         chmod +x dist/nubisary
-        chmod +x dist/nubisary/nubisary
     
-    - name: Verify one-file executable exists
+    - name: Verify executable exists
       run: |
         if [ -f "dist/nubisary" ]; then
-          echo "One-file executable created successfully"
+          echo "Executable created successfully"
           ls -lh dist/nubisary
         else
-          echo "ERROR: One-file executable not found"
-          exit 1
-        fi
-    
-    - name: Verify one-folder executable exists
-      run: |
-        if [ -f "dist/nubisary/nubisary" ]; then
-          echo "One-folder executable created successfully"
-          ls -lh dist/nubisary/nubisary
-        else
-          echo "ERROR: One-folder executable not found"
+          echo "ERROR: Executable not found"
           echo "Contents of dist/:"
           ls -la dist/
           exit 1
         fi
     
-    - name: Create ZIP for one-folder distribution
-      run: |
-        cd dist
-        if [ -d "nubisary" ]; then
-          zip -r nubisary-folder.zip nubisary/
-        else
-          echo "ERROR: Folder not found for zipping"
-          ls -la
-          exit 1
-        fi
-    
-    - name: Upload one-file executable artifact
+    - name: Upload executable artifact
       uses: actions/upload-artifact@v4
       with:
-        name: nubisary-linux-onefile
+        name: nubisary-linux
         path: dist/nubisary
-        retention-days: 30
-    
-    - name: Upload one-folder executable artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: nubisary-linux-folder
-        path: dist/nubisary-folder.zip
         retention-days: 30
 

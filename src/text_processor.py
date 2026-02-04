@@ -95,8 +95,7 @@ def normalize_plurals_with_lemmatization(text: str, language: str) -> str:
     """
     Lematize words to their base form using lemmatization.
     
-    Uses simplemma library for lemmatization, which is a lightweight
-    and efficient library for multiple languages including Spanish.
+    Uses simplemma for lemmatization when available.
     
     Args:
         text: Input text with potential plural forms
@@ -105,8 +104,12 @@ def normalize_plurals_with_lemmatization(text: str, language: str) -> str:
     Returns:
         Text with plurals converted to singular using lemmatization
     """
+    import logging
+    logger = logging.getLogger(__name__)
+
     if not SIMPLEMMA_AVAILABLE:
         # Fallback: return text unchanged if simplemma is not available
+        logger.warning('Lemmatization skipped: simplemma is not available.')
         return text
     
     # Map language codes to simplemma language codes
@@ -124,14 +127,14 @@ def normalize_plurals_with_lemmatization(text: str, language: str) -> str:
     
     # If language is not supported by simplemma, return text unchanged
     if simplemma_lang is None:
-        import logging
-        logger = logging.getLogger(__name__)
         logger.warning(
             f'Language "{language}" is not supported for plural normalization by simplemma. '
             f'Supported languages: {", ".join(sorted(lang_map.keys()))}. '
             f'Plural normalization will be skipped for this language.'
         )
         return text
+
+    logger.info(f'Using simplemma lemmatizer for language "{language}".')
     
     def lemmatize_word(match):
         word = match.group(0)
@@ -195,10 +198,13 @@ def normalize_plurals_with_lemmatization(text: str, language: str) -> str:
     return result
 
 
+
+
 def preprocess_text(
     text: str,
     case_sensitive: bool = False,
-    include_numbers: bool = False
+    include_numbers: bool = False,
+    preserve_sentence_boundaries: bool = False
 ) -> str:
     """
     Preprocess text by replacing punctuation with spaces and optionally lowercasing.
@@ -210,9 +216,13 @@ def preprocess_text(
         text: Raw text content
         case_sensitive: If False, convert text to lowercase
         include_numbers: Whether to keep numeric tokens (default: False)
+        preserve_sentence_boundaries: If True, sentence delimiters (. ! ? ; and line breaks)
+            are replaced with <SENT> markers instead of spaces. This is used for bigram
+            processing to ensure word pairs are not formed across sentence boundaries.
         
     Returns:
-        Preprocessed text
+        Preprocessed text with punctuation replaced by spaces (or <SENT> markers for
+        sentence delimiters when preserve_sentence_boundaries=True)
     """
     # Optionally remove any sequence that contains digits before punctuation handling
     text_clean = text
@@ -221,10 +231,24 @@ def preprocess_text(
         # Examples: covid19, covid-19, A4, 12:30, -14, 1-2
         text_clean = re.sub(r'\S*\d\S*', ' ', text_clean)
     
-    # Replace all punctuation characters with spaces
-    # This is safer than removing them, as it preserves word boundaries
-    for punct_char in PUNCTUATION:
-        text_clean = text_clean.replace(punct_char, ' ')
+    # For bigrams, preserve sentence boundaries with special markers
+    if preserve_sentence_boundaries:
+        # Replace sentence delimiters with a special marker
+        text_clean = text_clean.replace('.', ' <SENT> ')
+        text_clean = text_clean.replace('!', ' <SENT> ')
+        text_clean = text_clean.replace('?', ' <SENT> ')
+        text_clean = text_clean.replace(';', ' <SENT> ')
+        text_clean = text_clean.replace('\n', ' <SENT> ')
+        
+        # Replace other punctuation with spaces
+        other_punct = '''()-[]{};:'",<>./?@#$%^&*_~'''.replace('.', '').replace('!', '').replace('?', '').replace(';', '')
+        for punct_char in other_punct:
+            text_clean = text_clean.replace(punct_char, ' ')
+    else:
+        # Replace all punctuation characters with spaces
+        # This is safer than removing them, as it preserves word boundaries
+        for punct_char in PUNCTUATION:
+            text_clean = text_clean.replace(punct_char, ' ')
     
     # Normalize multiple spaces to single space
     text_clean = re.sub(r'\s+', ' ', text_clean)
@@ -254,15 +278,20 @@ def generate_word_count_from_text(
     It only tokenizes and counts, with optional stopword filtering and
     basic collocation handling.
     
+    For bigram mode, if the text contains <SENT> markers (from preprocess_text
+    with preserve_sentence_boundaries=True), the text is split by these markers
+    and bigrams are generated only within each sentence fragment. This ensures
+    that word pairs are not formed across sentence boundaries.
+    
     Args:
-        text: Transformed text content
+        text: Transformed text content (may contain <SENT> markers for bigrams)
         language: Language code for stopwords
         include_stopwords: Whether to include stopwords
-        ngram: "unigram" or "bigram"
+        ngram: "unigram" (single words) or "bigram" (consecutive word pairs)
         include_numbers: Whether to include numeric tokens in frequencies
         
     Returns:
-        Dictionary mapping words to their frequencies
+        Dictionary mapping words (or word pairs for bigrams) to their frequencies
     """
     # Tokenize on word boundaries (unicode-aware)
     tokens = re.findall(r'\b\w+\b', text)
@@ -286,20 +315,27 @@ def generate_word_count_from_text(
         return dict(counts)
     
     # Bigram mode: count adjacent pairs only (no unigrams)
+    # Respect sentence boundaries marked by <SENT> token
     if len(tokens) < 2:
         return {}
     
-    if include_numbers:
-        bigrams = [f"{tokens[i]} {tokens[i+1]}" for i in range(len(tokens) - 1)]
-    else:
-        bigrams = []
-        for i in range(len(tokens) - 1):
-            token_a = tokens[i]
-            token_b = tokens[i + 1]
-            # Skip bigrams that contain any digits in either token
+    bigrams = []
+    for i in range(len(tokens) - 1):
+        token_a = tokens[i]
+        token_b = tokens[i + 1]
+        
+        # Skip if either token is a sentence boundary marker
+        # Note: '<SENT>' becomes 'sent' after lowercase and punctuation removal
+        if token_a == 'sent' or token_b == 'sent':
+            continue
+        
+        # Skip bigrams that contain any digits in either token (if not include_numbers)
+        if not include_numbers:
             if re.search(r'\d', token_a) or re.search(r'\d', token_b):
                 continue
-            bigrams.append(f"{token_a} {token_b}")
+        
+        bigrams.append(f"{token_a} {token_b}")
+    
     counts = Counter(bigrams)
     return dict(counts)
 

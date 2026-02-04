@@ -23,13 +23,12 @@ Nubisary is a powerful word cloud generator that creates beautiful visualization
 
 ### Language Selection
 
-Choose the language of your text to enable proper stopword filtering. Supported languages include:
+Choose the language of your text. The GUI only lists languages with end-to-end support:
 
-**European Languages**: English, Spanish, French, Italian, Portuguese, German, Dutch, Russian, Greek, Danish, Norwegian, Swedish, Finnish, Turkish
+English, Spanish, French, German, Italian, Portuguese
 
-**Other Languages**: Arabic, Chinese, Hebrew, Indonesian
-
-The language setting helps remove common words (like "the", "a", "and" in English) to focus on meaningful content.
+The language setting controls stopword filtering and lemmatization.
+See `documentation/LANGUAGE_SUPPORT.md` for full details.
 
 ## Text Processing Options
 
@@ -37,7 +36,7 @@ The language setting helps remove common words (like "the", "a", "and" in Englis
 
 - **Include stopwords**: Keep common words (usually unchecked)
 - **Case sensitive**: Distinguish between uppercase and lowercase
-- **N-gram**: Choose `unigram` or `bigram` tokenization
+- **N-gram**: Choose `unigram` (single words) or `bigram` (word pairs) tokenization. Bigrams are only formed within sentence boundaries to maintain semantic accuracy
 - **Lematize**: Reduce words to their lemma (base form)
 - **Include numbers**: Keep numeric values in the word cloud
 - **Min word length**: Minimum characters per word (default: 0)
@@ -124,13 +123,13 @@ Choose a font for your word cloud:
   - Display: Barrio, Chelsea Market, Caesar Dressing, Pirata One, Ribeye Marrow, Saira Stencil One, Text Me One
 - **Custom...**: Select a font file from your system
 
-### Export Vocabulary
+### Generate and export additional outputs
 
-Export word frequency data:
+Check "Export additional outputs" to generate these additional files: 
 
-- Check "Export vocabulary" to generate JSON and CSV files
-- Optionally limit to top N words (e.g., top 20)
-- Files are saved alongside your word cloud image
+- JSON file containing all the vocabulary and the word count.
+- PDF & TXT files containing a user-friendly report on vocabulary stats and main insights.
+
 
 ## Tips & Best Practices
 
@@ -174,6 +173,4 @@ For detailed documentation, visit the project repository or check the CLI docume
 
 ---
 
-**Version**: 1.0  
-**Last Updated**: January 2026
 

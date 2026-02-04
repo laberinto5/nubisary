@@ -41,33 +41,20 @@ Click **"Browse..."** next to the "Input File" field to select your source file.
 Choose the language of your text from the **Language** dropdown menu.
 
 **Supported Languages:**
-The GUI supports 18 languages with verified NLTK stopwords support:
+The GUI only lists languages with end-to-end support:
 
-**European Languages:**
-- **English** (198 stopwords)
-- **Spanish** / Español (313 stopwords)
-- **French** / Français (157 stopwords)
-- **Italian** / Italiano (279 stopwords)
-- **Portuguese** / Português (207 stopwords)
-- **German** / Deutsch (232 stopwords)
-- **Dutch** / Nederlands (101 stopwords)
-- **Russian** / русский (151 stopwords)
-- **Greek** / Ελληνικά (265 stopwords)
-- **Danish** / dansk (94 stopwords)
-- **Norwegian** / norsk (176 stopwords)
-- **Swedish** / svenska (114 stopwords)
-- **Finnish** / suomi (235 stopwords)
-- **Turkish** / Türkçe (53 stopwords)
-
-**Other Languages:**
-- **Arabic** / العربية (754 stopwords)
-- **Chinese** / 中文 (841 stopwords)
-- **Hebrew** / עברית (221 stopwords)
-- **Indonesian** / Bahasa Indonesia (758 stopwords)
+- **Spanish** / Español
+- **English**
+- **French** / Français
+- **German** / Deutsch
+- **Italian** / Italiano
+- **Portuguese** / Português
 
 The language is used for:
-- Stopword filtering (common words like "the", "a", "and" in English; "el", "la", "y" in Spanish, etc.)
-- Automatic removal of language-specific common words to focus on meaningful content
+- Stopword filtering
+- Lemmatization (when enabled)
+
+See `documentation/LANGUAGE_SUPPORT.md` for details about language coverage.
 
 ### 3. Text Processing Options
 
@@ -136,7 +123,8 @@ Adjust the word cloud dimensions:
 - ☑ **Case Sensitive**: Preserve case in word processing (unchecked by default)
 - ☑ **Lematize**: Reduce words to their lemma (unchecked by default)
 - ☑ **Include Numbers**: Include numbers in word cloud (unchecked by default)
-- **N-gram**: Choose `unigram` or `bigram` tokenization for frequencies
+- **N-gram**: Choose `unigram` (individual words) or `bigram` (consecutive word pairs) tokenization for frequencies
+  - **Note**: Bigram mode uses special processing to preserve sentence boundaries, ensuring word pairs are only formed within the same sentence
 
 **Visual Options:**
 - **Relative Scaling**: Control size difference intensity (0.0-1.0, default: 0.5)
@@ -160,21 +148,13 @@ After generating:
 2. Choose a location and filename
 3. File is saved as PNG image
 
-### 7. Export Vocabulary (Optional)
+### 7. Export Additional Outputs (Optional)
 
-If you want the processed vocabulary with frequencies:
+Optionally, you can click on "Export additional outputs" checkbox to make Nubisary generate and save some additional outputs (not only the `.png` file for the word cloud):
 
-1. Check **"Export vocabulary (JSON/CSV)"** before generating
-2. Vocabulary is automatically saved to:
-   - `{filename}_vocabulary.json` - Word frequencies in JSON format
-   - `{filename}_vocabulary.csv` - Word frequencies in CSV format
+* **Vocabulary:** JSON file with the full unique vocabulary list, with frequencies. 
+* **Report:** PDF and TXT files containing a user-friendly report on the vocabulary. 
 
-**Save Vocabulary (JSON only):**
-- Use **"Save Vocabulary (Frequencies JSON)"** to export the latest vocabulary without saving a new PNG
-
-**Top N Words:**
-- Leave blank to export all words
-- Enter a number (e.g., `50`) to export only top N words
 
 ## Tips for Using the GUI
 

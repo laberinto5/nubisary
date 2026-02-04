@@ -29,7 +29,8 @@ pinned: false
   - Font selection
   - Canvas size control
 - **Vocabulary Export**: Export word frequencies to JSON and CSV
-- **Multi-language Support**: Built-in stopword support for 18 languages (Arabic, Chinese, Danish, Dutch, English, Finnish, French, German, Greek, Hebrew, Indonesian, Italian, Norwegian, Portuguese, Russian, Spanish, Swedish, Turkish)
+- **Vocabulary Report**: Human-readable TXT reports in English and Spanish
+- **Multi-language Support**: End-to-end support for English, Spanish, French, German, Italian, Portuguese (see `documentation/LANGUAGE_SUPPORT.md`)
 - **Dual Interface**: 
   - Command-line tool for automation and advanced users
   - Graphical user interface for ease of use
@@ -47,6 +48,12 @@ pip install -r requirements.txt
 **Command-line:**
 ```bash
 python nubisary.py generate -i document.pdf -l english --theme vibrant
+```
+```bash
+python nubisary.py generate -i document.pdf -l english --report
+```
+```bash
+python nubisary.py analyze -i document.pdf -l english
 ```
 
 **GUI:**
@@ -68,6 +75,7 @@ python app.py
 - **[Text Processing Workflow](documentation/WORKFLOW.md)** - High-level flow and transformation steps
 - **[Packaging](documentation/PACKAGING.md)** - Build and packaging options
 - **[Performance](documentation/PERFORMANCE.md)** - Performance considerations and optimization
+- **[Language Support](documentation/LANGUAGE_SUPPORT.md)** - Stopwords vs lemmatization coverage
 
 ## Web App (Hugging Face)
 

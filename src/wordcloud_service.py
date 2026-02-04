@@ -67,10 +67,14 @@ def process_text_to_frequencies(
     Process input file (text, JSON, PDF, DOCX) and extract word frequencies.
     This function only processes the text once, returning the frequencies dictionary.
     
+    Note: When config.ngram is set to "bigram", text preprocessing uses a specialized
+    path that preserves sentence boundaries with markers. This ensures bigrams are only
+    formed within the same sentence, maintaining semantic accuracy.
+    
     Args:
         input_file: Path to input file (text, JSON, PDF, DOC, or DOCX)
         language: Language code for text processing (required for text files)
-        config: WordCloudConfig object with processing settings
+        config: WordCloudConfig object with processing settings (including ngram mode)
         clean_text: If True, apply text cleaning when converting documents (default: True)
         exclude_words: Optional string with words/phrases to exclude (file path or comma-separated list)
         exclude_case_sensitive: If True, exclude matching is case-sensitive (default: False)
@@ -83,7 +87,7 @@ def process_text_to_frequencies(
         replace_stage: Where to apply replacements: "original" or "processed" (default: original)
         
     Returns:
-        Dictionary mapping words to their frequencies
+        Dictionary mapping words (or word pairs for bigrams) to their frequencies
         
     Raises:
         WordCloudServiceError: For any service-level errors
@@ -151,10 +155,13 @@ def process_text_to_frequencies(
             if replace_stage == "original":
                 text = _apply_replacements(text)
             
+            # For bigrams, preserve sentence boundaries to avoid false bigrams across sentences
+            preserve_boundaries = (config.ngram.lower() == "bigram")
             text_processed = preprocess_text(
                 text,
                 config.case_sensitive,
-                include_numbers=config.include_numbers
+                include_numbers=config.include_numbers,
+                preserve_sentence_boundaries=preserve_boundaries
             )
             
             # Apply language-dependent transformations (lemmatization)
