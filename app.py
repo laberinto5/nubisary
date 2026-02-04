@@ -172,14 +172,6 @@ def _register_custom_theme_colormap(
         return fallback
 
 
-def _toggle_export_outputs(enabled: bool):
-    return gr.update(visible=enabled)
-
-
-def _toggle_report_outputs(enabled: bool):
-    return gr.update(visible=enabled)
-
-
 def _reset_to_defaults(default_theme: str):
     return (
         None,  # input_file
@@ -202,17 +194,11 @@ def _reset_to_defaults(default_theme: str):
         "Default",  # font_choice
         0.0,  # contour_width
         "",  # contour_color
-        False,  # export_vocab
-        "",  # vocab_top_n
-        gr.update(visible=False),  # export_outputs
         None,  # vocab_json
-        None,  # vocab_csv
-        False,  # export_report
-        gr.update(visible=False),  # report_outputs
-        None,  # report_txt_en
-        None,  # report_txt_es
         None,  # report_pdf_en
         None,  # report_pdf_es
+        None,  # report_txt_en
+        None,  # report_txt_es
         False,  # use_custom_theme
         "custom-theme",  # custom_theme_name
         "#FFFFFF",  # custom_background_color
@@ -637,6 +623,33 @@ def build_app() -> gr.Blocks:
 
     with gr.Blocks(title="Nubisary") as demo:
         gr.Markdown("## Nubisary - Word Cloud Generator")
+        
+        with gr.Accordion("📖 Usage Guide", open=False):
+            gr.Markdown("""
+            **Three ways to use Nubisary:**
+            
+            **🟢 Basic (Recommended for beginners):**
+            1. Upload your file (only once)
+            2. Select language
+            3. Click "Generate"
+            4. Review the result and download if you like it
+            5. Adjust settings and click "Generate" again to regenerate (no need to re-upload)
+            
+            **🟡 Intermediate:**
+            - Same as Basic, plus adjust before generating:
+              - Text processing: stopwords, lemmatization, case sensitivity
+              - Visual settings: size, word count, theme, mask shape
+            - Regenerate as many times as needed with different settings
+            
+            **🔴 Advanced:**
+            - Same as Intermediate, plus use "Advanced Configurations" for:
+              - Custom themes and colors
+              - Custom masks and fonts
+              - Text replacements and transformations
+            - Experiment with different combinations and regenerate to see results
+            
+            **💡 Tip:** Upload your file once, then experiment with different settings and regenerate as many times as you want!
+            """)
 
         gr.Markdown("### Input")
         with gr.Row():
@@ -668,91 +681,153 @@ def build_app() -> gr.Blocks:
                         elem_id="reset-btn",
                         elem_classes=["reset-btn"],
                     )
+        gr.Markdown("#### 📝 Text Processing Options")
         with gr.Row():
             language = gr.Dropdown(
                 choices=LANGUAGES_FOR_NLTK,
                 value="spanish",
                 label="Language (ignored for JSON)",
+                info="Used for stopwords and lemmatization"
             )
             theme = gr.Dropdown(
                 choices=theme_names,
                 value=default_theme,
                 label="Theme",
+                info="Color scheme for the word cloud"
             )
             ngram = gr.Dropdown(
                 choices=["unigram", "bigram"],
                 value="unigram",
                 label="N-gram",
+                info="Single words or word pairs"
             )
         with gr.Row():
-            include_stopwords = gr.Checkbox(label="Include stopwords", value=False)
-            include_numbers = gr.Checkbox(label="Include numbers", value=False)
-            case_sensitive = gr.Checkbox(label="Case sensitive", value=False)
-            lemmatize = gr.Checkbox(label="Lemmatize", value=False)
+            include_stopwords = gr.Checkbox(
+                label="Include stopwords", 
+                value=False,
+                info="Include common words (usually unchecked)"
+            )
+            include_numbers = gr.Checkbox(
+                label="Include numbers", 
+                value=False,
+                info="Include numeric tokens (usually unchecked)"
+            )
+            case_sensitive = gr.Checkbox(
+                label="Case sensitive", 
+                value=False,
+                info="Distinguish uppercase/lowercase"
+            )
+            lemmatize = gr.Checkbox(
+                label="Lemmatize", 
+                value=False,
+                info="Reduce words to base form"
+            )
 
         gr.Markdown("### Preview")
         with gr.Row():
             with gr.Column(scale=1):
-                gr.Markdown("#### Visual basics")
+                gr.Markdown("#### ⚙️ Basic Visual Configuration")
                 with gr.Row():
-                    canvas_width = gr.Number(label="Width", value=800, precision=0)
-                    canvas_height = gr.Number(label="Height", value=600, precision=0)
+                    canvas_width = gr.Number(
+                        label="Width", 
+                        value=800, 
+                        precision=0,
+                        info="Canvas width (pixels)"
+                    )
+                    canvas_height = gr.Number(
+                        label="Height", 
+                        value=600, 
+                        precision=0,
+                        info="Canvas height (pixels)"
+                    )
                 with gr.Row():
-                    max_words = gr.Number(label="Max words", value=200, precision=0)
-                    min_word_length = gr.Number(label="Min length", value=0, precision=0)
+                    max_words = gr.Number(
+                        label="Max words", 
+                        value=200, 
+                        precision=0,
+                        info="Maximum words to include"
+                    )
+                    min_word_length = gr.Number(
+                        label="Min length", 
+                        value=0, 
+                        precision=0,
+                        info="Minimum word length (0 = no limit)"
+                    )
                 relative_scaling = gr.Slider(
-                    label="Relative scaling", minimum=0.0, maximum=1.0, value=0.5
+                    label="Relative scaling", 
+                    minimum=0.0, 
+                    maximum=1.0, 
+                    value=0.5,
+                    info="Size difference intensity (lower = more dramatic)"
                 )
                 prefer_horizontal = gr.Slider(
-                    label="Prefer horizontal", minimum=0.0, maximum=1.0, value=0.9
+                    label="Prefer horizontal", 
+                    minimum=0.0, 
+                    maximum=1.0, 
+                    value=0.9,
+                    info="Orientation preference (1.0 = all horizontal)"
                 )
                 with gr.Row():
                     mask_choice = gr.Dropdown(
                         choices=mask_names,
                         value="None",
                         label="Built-in mask",
+                        info="Shape mask for word cloud"
                     )
                     font_choice = gr.Dropdown(
                         choices=font_names,
                         value="Default",
                         label="Built-in font",
+                        info="Font for word cloud"
                     )
                 with gr.Row():
-                    contour_width = gr.Number(label="Contour width", value=0.0)
-                    contour_color = gr.Textbox(label="Contour color", value="")
+                    contour_width = gr.Number(
+                        label="Contour width", 
+                        value=0.0,
+                        info="Mask contour width (0 = no contour)"
+                    )
+                    contour_color = gr.Textbox(
+                        label="Contour color", 
+                        value="",
+                        info="Contour color (hex code, e.g., #FF0000)"
+                    )
             with gr.Column(scale=2):
                 output_image = gr.Image(label="Word cloud preview", type="pil")
 
-        gr.Markdown("### Options")
         with gr.Row(equal_height=True):
             with gr.Column(scale=1, min_width=320):
-                with gr.Accordion("Export vocabulary", open=False):
-                    export_vocab = gr.Checkbox(label="Export JSON/CSV", value=False)
-                    vocab_top_n = gr.Textbox(label="Top N words", value="")
-                    export_outputs = gr.Group(visible=False)
-                    with export_outputs:
-                        with gr.Row():
-                            vocab_json = gr.File(label="Vocabulary JSON")
-                            vocab_csv = gr.File(label="Vocabulary CSV")
-                with gr.Accordion("Export report (TXT/PDF)", open=False):
-                    export_report = gr.Checkbox(label="Export report", value=False)
-                    report_outputs = gr.Group(visible=False)
-                    with report_outputs:
-                        with gr.Row():
-                            report_txt_en = gr.File(label="Report TXT (EN)")
-                            report_txt_es = gr.File(label="Report TXT (ES)")
-                        with gr.Row():
-                            report_pdf_en = gr.File(label="Report PDF (EN)")
-                            report_pdf_es = gr.File(label="Report PDF (ES)")
+                gr.Markdown("### 📥 Additional Outputs")
+                with gr.Row():
+                    vocab_json = gr.File(label="📊 Vocabulary JSON", visible=True)
+                with gr.Row():
+                    report_pdf_en = gr.File(label="📄 Report PDF (English)", visible=True)
+                    report_pdf_es = gr.File(label="📄 Report PDF (Spanish)", visible=True)
+                with gr.Row():
+                    report_txt_en = gr.File(label="📝 Report TXT (English)", visible=True)
+                    report_txt_es = gr.File(label="📝 Report TXT (Spanish)", visible=True)
 
+                gr.Markdown("### ⚙️ Advanced Configurations")
                 with gr.Accordion("Advanced options", open=False):
                     gr.Markdown("#### Custom theme")
-                    use_custom_theme = gr.Checkbox(label="Use custom theme (override built-in)", value=False)
-                    custom_theme_name = gr.Textbox(label="Custom theme name", value="custom-theme")
-                    custom_background_color = gr.Textbox(label="Background color", value="#FFFFFF")
+                    use_custom_theme = gr.Checkbox(
+                        label="Use custom theme (override built-in)", 
+                        value=False,
+                        info="Override built-in theme with custom colors"
+                    )
+                    custom_theme_name = gr.Textbox(
+                        label="Custom theme name", 
+                        value="custom-theme",
+                        info="Theme name (reference only)"
+                    )
+                    custom_background_color = gr.Textbox(
+                        label="Background color", 
+                        value="#FFFFFF",
+                        info="Background color (hex format)"
+                    )
                     custom_colormap_colors = gr.Textbox(
                         label="Colormap colors (comma-separated)",
                         value="#FF0000, #00FF00, #0000FF",
+                        info="Comma-separated hex colors"
                     )
 
                     gr.Markdown("#### Custom mask / font")
@@ -762,36 +837,58 @@ def build_app() -> gr.Blocks:
                         file_count="single",
                     )
                     mask_file = gr.File(type="filepath", visible=False)
-                    mask_name = gr.Textbox(label="Mask file", value="", interactive=False)
+                    mask_name = gr.Textbox(
+                        label="Mask file", 
+                        value="", 
+                        interactive=False,
+                        info="Image mask (white = words, black = empty)"
+                    )
                     font_upload = gr.UploadButton(
                         "Upload font file",
                         file_types=[".ttf", ".otf"],
                         file_count="single",
                     )
                     font_file = gr.File(type="filepath", visible=False)
-                    font_name = gr.Textbox(label="Font file", value="", interactive=False)
+                    font_name = gr.Textbox(
+                        label="Font file", 
+                        value="", 
+                        interactive=False,
+                        info="Custom font file (.ttf or .otf)"
+                    )
 
                     gr.Markdown("#### Text replacements")
-                    replace_search = gr.Textbox(label="Search", value="")
-                    replace_with = gr.Textbox(label="Replace", value="")
+                    replace_search = gr.Textbox(
+                        label="Search", 
+                        value="",
+                        info="Text/pattern to find"
+                    )
+                    replace_with = gr.Textbox(
+                        label="Replace", 
+                        value="",
+                        info="Replacement (empty = remove)"
+                    )
                     with gr.Row():
                         replace_mode = gr.Dropdown(
                             choices=["single", "list", "regex"],
                             value="single",
                             label="Mode",
+                            info="Replacement mode"
                         )
-                        replace_case_sensitive = gr.Checkbox(label="Case-sensitive", value=False)
+                        replace_case_sensitive = gr.Checkbox(
+                            label="Case-sensitive", 
+                            value=False,
+                            info="Match case exactly"
+                        )
                     replace_stage = gr.Dropdown(
                         choices=["original", "processed"],
                         value="original",
                         label="Apply on",
+                        info="When to apply (before/after processing)"
                     )
 
         input_upload.upload(_handle_upload, inputs=input_upload, outputs=[input_file, input_name])
         mask_upload.upload(_handle_upload, inputs=mask_upload, outputs=[mask_file, mask_name])
         font_upload.upload(_handle_upload, inputs=font_upload, outputs=[font_file, font_name])
-        export_vocab.change(_toggle_export_outputs, inputs=export_vocab, outputs=export_outputs)
-        export_report.change(_toggle_report_outputs, inputs=export_report, outputs=report_outputs)
         reset_btn.click(
             _reset_to_defaults,
             inputs=[gr.State(default_theme)],
@@ -816,17 +913,11 @@ def build_app() -> gr.Blocks:
                 font_choice,
                 contour_width,
                 contour_color,
-                export_vocab,
-                vocab_top_n,
-                export_outputs,
                 vocab_json,
-                vocab_csv,
-                export_report,
-                report_outputs,
-                report_txt_en,
-                report_txt_es,
                 report_pdf_en,
                 report_pdf_es,
+                report_txt_en,
+                report_txt_es,
                 use_custom_theme,
                 custom_theme_name,
                 custom_background_color,
@@ -874,11 +965,8 @@ def build_app() -> gr.Blocks:
             contour_color,
             font_choice,
             font_file,
-            export_vocab,
-            vocab_top_n,
-            export_report,
         ]
-        outputs = [output_image, vocab_json, vocab_csv, report_txt_en, report_txt_es, report_pdf_en, report_pdf_es, status]
+        outputs = [output_image, vocab_json, report_pdf_en, report_pdf_es, report_txt_en, report_txt_es, status]
         generate_btn.click(generate_wordcloud, inputs=inputs, outputs=outputs)
 
     demo.css = COMPACT_CSS
