@@ -45,7 +45,8 @@ def test_build_report_data_basic_stats():
     assert top_words[0]["frequency"] == 10.0
 
     concentration = analysis["concentration"]
-    assert round(concentration[5], 2) == round(100.0, 2)
+    # concentration[5] is now a dict with percent_of_total and percent_of_unique
+    assert round(concentration[5]["percent_of_total"], 2) == round(100.0, 2)
 
     hapax = analysis["hapax"]
     assert hapax["count"] == 1
@@ -89,7 +90,8 @@ def test_render_report_txt_includes_warning():
     assert "Vocabulary variability ratio" in report_text
     assert "Longest hapax token" in report_text
     assert "Hapax legomena:" in report_text
-    assert "Metric" in report_text
+    # "Metric" only appears in comparison table when comparison is available
+    # When comparison is not available, only the warning is shown
     assert "Top 5 Words: Common Bigrams" in report_text
     assert "Top 5 Words: Context Examples" in report_text
     assert "Including hapax" in report_text
